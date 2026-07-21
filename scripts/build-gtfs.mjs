@@ -3,34 +3,46 @@ import { parse } from "csv-parse";
 import path from 'node:path'
 
 const KEPT_TYPES = ['0', '1', '2']
+const routePath = path.resolve(import.meta.dirname, '../data/gtfs/routes.txt')
+const tripPath = path.resolve(import.meta.dirname, '../data/gtfs/trips.txt')
 
-const records = [];
-const routes = path.resolve(import.meta.dirname, '../data/gtfs/routes.txt')
-const parser = parse({
-    delimiter: ",",
-    columns: true,
-});
+function parseGtfsFile(filePath, onRecord) {
+    return new Promise((resolve, reject) => {
+        const parser = parse({
+            delimiter: ',',
+            columns: true
+        })
 
-parser.on("readable", function () {
-    let record;
-    while ((record = parser.read()) !== null) {
-        if (!KEPT_TYPES.includes(record.route_type)) {
-            continue;
-        }
+        const results = []
 
-        records.push(record);
-    }
-});
+        parser.on('readable', () => {
+            let record
+            while ((record = parser.read()) !== null) {
+                const kept = onRecord(record);
+                if (kept) {
+                    results.push(kept)
+                }
+            }
+        })
 
-parser.on("error", function (err) {
-    console.error(err.message);
-});
+        parser.on('error', reject);
+        parser.on('end', () => resolve(results));
 
-let reader = fs.createReadStream(routes, {
-    encoding: 'UTF-8',
-});
+        fs.createReadStream(filePath).pipe(parser);
+    })
+}
 
-reader.pipe(parser);
-parser.on('end', () => {
-    console.log(records.length);
-});
+async function main() {
+    const routeIds = await parseGtfsFile(routePath, r =>
+        KEPT_TYPES.includes(r.route_type) ? r.route_id : null
+    )
+
+    const routeIdSet = new Set(routeIds);
+    const tripIds = await parseGtfsFile(tripPath, t =>
+        routeIdSet.has(t.route_id) ? t.trip_id : null
+    )
+
+    console.log(tripIds);
+}
+
+main();
