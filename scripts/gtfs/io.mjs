@@ -1,7 +1,8 @@
 import {parse} from "csv-parse";
 import fs from "node:fs";
+import {buildData} from "./transform.mjs";
 
-export function readGtfsCsv(filePath, onRecord) {
+export const readGtfsCsv = (filePath, onRecord) => {
     return new Promise((resolve, reject) => {
         const parser = parse({
             delimiter: ',',
@@ -27,4 +28,8 @@ export function readGtfsCsv(filePath, onRecord) {
 
         fs.createReadStream(filePath).pipe(parser);
     })
+}
+
+export const createJson = (routes, stops, filePath) => {
+    fs.writeFileSync(filePath, JSON.stringify(buildData(routes, stops)));
 }

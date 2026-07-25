@@ -1,14 +1,26 @@
 import path from 'node:path'
-import {readGtfsCsv} from './io.mjs';
-import {isKeptRoute, isKeptTrip} from "./filters.mjs";
+import {createJson, readGtfsCsv} from './io.mjs';
+import {isKeptRoute, isKeptStop, isKeptStopTime, isKeptTrip} from "./filters.mjs";
 
-const routePath = path.resolve(import.meta.dirname, '../../data/gtfs/routes.txt')
-const tripPath = path.resolve(import.meta.dirname, '../../data/gtfs/trips.txt')
+const routePath = path.resolve(import.meta.dirname, '../../data/gtfs/routes.txt');
+const stopPath = path.resolve(import.meta.dirname, '../../data/gtfs/stops.txt');
+const stopTimePath = path.resolve(import.meta.dirname, '../../data/gtfs/stop_times.txt');
+const tripPath = path.resolve(import.meta.dirname, '../../data/gtfs/trips.txt');
+const jsonPath = path.resolve(import.meta.dirname, '../../public/data/gtfs.json');
 
 export async function main() {
-    const routeIds = await readGtfsCsv(routePath, isKeptRoute);
-    const routeIdSet = new Set(routeIds);
+    const routes = await readGtfsCsv(routePath, isKeptRoute);
+    const routeIdSet = new Set(routes.map(route => route.route_id));
     const tripFilter = (record) => isKeptTrip(record, routeIdSet);
     const tripIds = await readGtfsCsv(tripPath, tripFilter);
-    console.log(tripIds.length);
+    const tripIdSet = new Set(tripIds);
+
+    const stopTimeFilter = (record) => isKeptStopTime(record, tripIdSet);
+    const stopTimeIds = await readGtfsCsv(stopTimePath, stopTimeFilter);
+    const stopTimeSet = new Set(stopTimeIds);
+
+    const stopFilter = (record) => isKeptStop(record, stopTimeSet);
+    const stops = await readGtfsCsv(stopPath, stopFilter);
+
+    createJson(routes, stops, jsonPath);
 }
