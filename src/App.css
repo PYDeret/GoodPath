@@ -6,3 +6,13 @@
   height: 700px;
   width: 100%;
 }
+
+.address-form {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.route-info-panel {
+  margin-top: 0.5rem;
+}

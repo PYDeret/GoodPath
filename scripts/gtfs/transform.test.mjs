@@ -64,4 +64,13 @@ describe('buildData', () => {
 
         expect(data.graph.A[0].duration).toBe(180);
     });
+
+    it('adds a bidirectional interchange edge for each transfer', () => {
+        const transfers = [{from_stop_id: 'B', to_stop_id: 'C', min_transfer_time: '90'}];
+
+        const data = buildData([], [], [], [], [], transfers);
+
+        expect(data.graph.B).toContainEqual({to: 'C', duration: 90, routeId: 'TRANSFER'});
+        expect(data.graph.C).toContainEqual({to: 'B', duration: 90, routeId: 'TRANSFER'});
+    });
 });

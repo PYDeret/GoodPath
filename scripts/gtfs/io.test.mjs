@@ -52,7 +52,7 @@ describe('createJson', () => {
         tmpFiles.push(filePath);
 
         const routes = [{route_id: 'R1', route_short_name: '1', route_long_name: 'Line 1', route_color: 'FFF', route_text_color: '000', route_type: '1'}];
-        createJson(routes, [], [], [], [], filePath);
+        createJson(routes, [], [], [], [], [], filePath);
 
         const written = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
         expect(written.lines).toEqual([

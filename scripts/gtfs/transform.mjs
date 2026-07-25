@@ -9,18 +9,35 @@ const groupBy = (records, key) => records.reduce((acc, record) => {
     return acc;
 }, {});
 
+// Marks a graph edge as an interchange (walk between platforms/lines at the
+// same station complex) rather than a ride on a GTFS route.
+// Kept in sync with src/domain/gtfs/transferRouteId.ts.
+const TRANSFER_ROUTE_ID = 'TRANSFER';
+
+const addOrUpdateEdge = (graph, from, to, duration, routeId) => {
+    graph[from] ??= [];
+    const edge = graph[from].find(edge => edge.to === to);
+    if (edge) {
+        edge.duration = Math.min(edge.duration, duration);
+    } else {
+        graph[from].push({to, duration, routeId});
+    }
+}
+
 /**
- * Turns the filtered GTFS records (routes, shapes, stops, stop_times, trips)
- * into the app's `gtfs.json` shape: lines, shapes grouped and ordered by
- * sequence, an adjacency-list `graph` of stop-to-stop travel times, and
- * stations.
+ * Turns the filtered GTFS records (routes, shapes, stops, stop_times, trips,
+ * transfers) into the app's `gtfs.json` shape: lines, shapes grouped and
+ * ordered by sequence, an adjacency-list `graph` of stop-to-stop travel
+ * times (ride edges from stop_times plus walking interchange edges from
+ * transfers), and stations.
  */
 export const buildData = (
     routes,
     shapes,
     stops,
     stopTimes,
-    trips
+    trips,
+    transfers = []
 ) => {
     const data = {
         graph: {},
@@ -70,14 +87,15 @@ export const buildData = (
             const to = points[i + 1].stop_id;
             const duration = parseGtfsTime(points[i + 1].arrival_time) - parseGtfsTime(points[i].departure_time);
 
-            data.graph[from] ??= [];
-            const edge = data.graph[from].find(edge => edge.to === to);
-            if (edge) {
-                edge.duration = Math.min(edge.duration, duration);
-            } else {
-                data.graph[from].push({ to, duration, routeId });
-            }
+            addOrUpdateEdge(data.graph, from, to, duration, routeId);
         }
+    });
+
+    transfers.forEach(transfer => {
+        const duration = parseInt(transfer.min_transfer_time, 10);
+
+        addOrUpdateEdge(data.graph, transfer.from_stop_id, transfer.to_stop_id, duration, TRANSFER_ROUTE_ID);
+        addOrUpdateEdge(data.graph, transfer.to_stop_id, transfer.from_stop_id, duration, TRANSFER_ROUTE_ID);
     });
 
     stops.forEach(stop => {

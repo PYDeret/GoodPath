@@ -2,6 +2,7 @@ import {describe, expect, it, vi} from "vitest";
 import {render, screen} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type {PropsWithChildren} from "react";
+import {QueryClient, QueryClientProvider} from "@tanstack/react-query";
 import FullMap from "./FullMap.tsx";
 import type StationsLayer from "../Stations/StationsLayer.tsx";
 
@@ -25,9 +26,18 @@ vi.mock("../Stations/StationsLayer.tsx", () => ({
 vi.mock("../Lines/LinesLayer.tsx", () => ({default: () => null}));
 vi.mock("../Path/PathLayer.tsx", () => ({default: () => null}));
 
+const renderFullMap = () => {
+    const queryClient = new QueryClient();
+    return render(
+        <QueryClientProvider client={queryClient}>
+            <FullMap />
+        </QueryClientProvider>
+    );
+};
+
 describe('FullMap station selection', () => {
     it('sets the first click as the departure station', async () => {
-        render(<FullMap />);
+        renderFullMap();
 
         await userEvent.click(screen.getByText('select A'));
 
@@ -36,7 +46,7 @@ describe('FullMap station selection', () => {
     });
 
     it('sets the second click as the arrival station', async () => {
-        render(<FullMap />);
+        renderFullMap();
 
         await userEvent.click(screen.getByText('select A'));
         await userEvent.click(screen.getByText('select B'));
@@ -46,7 +56,7 @@ describe('FullMap station selection', () => {
     });
 
     it('starts a new selection on the third click', async () => {
-        render(<FullMap />);
+        renderFullMap();
 
         await userEvent.click(screen.getByText('select A'));
         await userEvent.click(screen.getByText('select B'));

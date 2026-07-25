@@ -2,23 +2,23 @@ import {describe, expect, it} from "vitest";
 import {formatDuration} from "./formatDuration.ts";
 
 describe('formatDuration', () => {
-    it('formats a sub-hour duration as minutes', () => {
+    it('formats seconds under half a minute as 0min', () => {
+        expect(formatDuration(20)).toBe('0min');
+    });
+
+    it('formats minutes only', () => {
         expect(formatDuration(42 * 60)).toBe('42min');
     });
 
-    it('formats an hour-plus duration as hHmm', () => {
-        expect(formatDuration(83 * 60)).toBe('1h23');
+    it('formats hours and minutes', () => {
+        expect(formatDuration(65 * 60)).toBe('1h05');
     });
 
-    it('pads single-digit minutes', () => {
-        expect(formatDuration(3600 + 5 * 60)).toBe('1h05');
+    it('formats exact hours with padded zero minutes', () => {
+        expect(formatDuration(2 * 3600)).toBe('2h00');
     });
 
     it('rounds to the nearest minute', () => {
-        expect(formatDuration(90)).toBe('2min');
-    });
-
-    it('formats zero as 0min', () => {
-        expect(formatDuration(0)).toBe('0min');
+        expect(formatDuration(89)).toBe('1min');
     });
 });
