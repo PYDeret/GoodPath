@@ -5,13 +5,22 @@ export type PathResult = {
     previous: Map<string, string>,
 }
 
+export type PathConstraints = {
+    forbiddenStations?: Set<string>,
+    forbiddenLines?: Set<string>,
+    forbiddenEdges?: Set<string>,
+}
+
+export const edgeKey = (from: string, to: string) => `${from}>${to}`;
+
 /**
  * Dijkstra's algorithm over a `TransportGraph`: returns the shortest
  * cumulative duration from `fromStopId` to every reachable stop, plus the
  * predecessor of each stop on its shortest path (feed to `buildPath` to get
- * the ordered route to a given destination).
+ * the ordered route to a given destination). `constraints` excludes stations,
+ * lines (routeId) or specific `from>to` edges from the traversal entirely.
  */
-export const computeShortestPaths = (graph: TransportGraph, fromStopId: string): PathResult => {
+export const computeShortestPaths = (graph: TransportGraph, fromStopId: string, constraints: PathConstraints = {}): PathResult => {
     const durations = new Map<string, number>([[fromStopId, 0]]);
     const previous = new Map<string, string>();
     const visited = new Set<string>();
@@ -27,6 +36,18 @@ export const computeShortestPaths = (graph: TransportGraph, fromStopId: string):
 
         for (const edge of graph[current] ?? []) {
             if (visited.has(edge.to)) {
+                continue;
+            }
+
+            if (constraints.forbiddenStations?.has(edge.to)) {
+                continue;
+            }
+
+            if (constraints.forbiddenLines?.has(edge.routeId)) {
+                continue;
+            }
+
+            if (constraints.forbiddenEdges?.has(edgeKey(current, edge.to))) {
                 continue;
             }
 
@@ -56,4 +77,40 @@ export const buildPath = (previous: Map<string, string>, toStopId: string): stri
     }
 
     return path;
+}
+
+export type WaypointPathResult = {
+    path: string[],
+    duration: number,
+}
+
+/**
+ * Shortest path from `fromStopId` to `toStopId` forced through
+ * `requiredStations` in order, by chaining Dijkstra leg by leg (each leg
+ * under the same `constraints`). Returns null if any leg is unreachable.
+ */
+export const computeShortestPathWithWaypoints = (
+    graph: TransportGraph,
+    fromStopId: string,
+    toStopId: string,
+    requiredStations: string[] = [],
+    constraints: PathConstraints = {}
+): WaypointPathResult | null => {
+    const stops = [fromStopId, ...requiredStations, toStopId];
+    const path = [stops[0]];
+    let duration = 0;
+
+    for (let i = 0; i < stops.length - 1; i++) {
+        const {durations, previous} = computeShortestPaths(graph, stops[i], constraints);
+        const legDuration = durations.get(stops[i + 1]);
+
+        if (legDuration === undefined) {
+            return null;
+        }
+
+        duration += legDuration;
+        path.push(...buildPath(previous, stops[i + 1]).slice(1));
+    }
+
+    return {path, duration};
 }

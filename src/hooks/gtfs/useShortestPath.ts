@@ -1,25 +1,28 @@
 import {useMemo} from "react";
 import type {TransportGraph} from "../../types/gtfs/gtfsGraph.ts";
-import {buildPath, computeShortestPaths} from "../../domain/gtfs/shortestPath.ts";
+import type {PathConstraints} from "../../domain/gtfs/shortestPath.ts";
+import {computeShortestPathWithWaypoints} from "../../domain/gtfs/shortestPath.ts";
 
 /**
- * Memoized shortest path between two stops of a `TransportGraph`. Returns
- * `{path: null, duration: null}` until both stop ids are set or no path
- * exists between them.
+ * Memoized shortest path between two stops of a `TransportGraph`, forced
+ * through `requiredStations` in order and honoring optional `constraints`
+ * (forbidden stations/lines/edges). Returns `{path: null, duration: null}`
+ * until both stop ids are set or no path exists under the given constraints.
  */
-export function useShortestPath(graph: TransportGraph | undefined, fromStopId?: string, toStopId?: string) {
+export function useShortestPath(
+    graph: TransportGraph | undefined,
+    fromStopId?: string,
+    toStopId?: string,
+    requiredStations: string[] = [],
+    constraints?: PathConstraints
+) {
     return useMemo(() => {
         if (!graph || !fromStopId || !toStopId) {
             return {path: null, duration: null};
         }
 
-        const {durations, previous} = computeShortestPaths(graph, fromStopId);
-        const duration = durations.get(toStopId);
+        const result = computeShortestPathWithWaypoints(graph, fromStopId, toStopId, requiredStations, constraints);
 
-        if (duration === undefined) {
-            return {path: null, duration: null};
-        }
-
-        return {path: buildPath(previous, toStopId), duration};
-    }, [graph, fromStopId, toStopId]);
+        return result ?? {path: null, duration: null};
+    }, [graph, fromStopId, toStopId, requiredStations, constraints]);
 }
