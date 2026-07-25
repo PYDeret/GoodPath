@@ -9,13 +9,21 @@ import AddressRouteLayer from "../Address/AddressRouteLayer.tsx";
 import RouteInfoPanel from "../Address/RouteInfoPanel.tsx";
 import {useGtfsData} from "../../hooks/gtfs/useGtfsData.ts";
 import {useAddressRoute} from "../../hooks/gtfs/useAddressRoute.ts";
+import {computeRouteStatus} from "../../domain/gtfs/routeStatus.ts";
+
+const STATUS_MESSAGES = {
+    loading: 'Recherche en cours...',
+    'from-not-found': "Adresse de départ introuvable.",
+    'to-not-found': "Adresse d'arrivée introuvable.",
+    'no-path': "Aucun itinéraire trouvé entre ces deux adresses.",
+};
 
 /**
  * Root map view. Owns the departure/arrival station selection (click-based:
  * first click sets `fromStopId`, second sets `toStopId`, third resets) and
  * the address-based routing form. Renders the station, line, click-path and
  * address-route layers on top of the OSM tile layer, plus a route info
- * panel when an address route is found.
+ * panel (or a status message when geocoding fails or no path exists).
  */
 function FullMap() {
     const [fromStopId, setFromStopId] = useState<string>();
@@ -25,6 +33,14 @@ function FullMap() {
 
     const {data} = useGtfsData();
     const addressRoute = useAddressRoute(data, fromAddress, toAddress);
+    const routeStatus = computeRouteStatus({
+        fromAddress,
+        toAddress,
+        isLoading: addressRoute.isLoading,
+        fromStation: addressRoute.fromStation,
+        toStation: addressRoute.toStation,
+        duration: addressRoute.duration,
+    });
 
     const handleStationClick = (stopId: string) => {
         if (!fromStopId || toStopId) {
@@ -50,10 +66,13 @@ function FullMap() {
                 <StationsLayer onStationClick={handleStationClick} fromStopId={fromStopId} toStopId={toStopId} />
                 <LinesLayer />
                 <PathLayer fromStopId={fromStopId} toStopId={toStopId} />
-                {data && addressRoute.legs.length > 0 && <AddressRouteLayer data={data} legs={addressRoute.legs} />}
+                {data && routeStatus === 'found' && <AddressRouteLayer data={data} legs={addressRoute.legs} />}
             </MapContainer>
-            {data && addressRoute.legs.length > 0 && addressRoute.duration !== null && (
+            {data && routeStatus === 'found' && addressRoute.duration !== null && (
                 <RouteInfoPanel data={data} legs={addressRoute.legs} duration={addressRoute.duration} />
+            )}
+            {routeStatus !== 'idle' && routeStatus !== 'found' && (
+                <p className="route-status">{STATUS_MESSAGES[routeStatus]}</p>
             )}
         </div>
     )
