@@ -11,7 +11,7 @@ export type PathConstraints = {
     forbiddenEdges?: Set<string>,
 }
 
-const edgeKey = (from: string, to: string) => `${from}>${to}`;
+export const edgeKey = (from: string, to: string) => `${from}>${to}`;
 
 /**
  * Dijkstra's algorithm over a `TransportGraph`: returns the shortest
