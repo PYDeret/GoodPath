@@ -1,10 +1,10 @@
-import AppMap from './components/AppMap'
+import FullMap from './components/Map/FullMap'
 import './App.css'
 
 function App() {
   return (
     <>
-      <AppMap/>
+      <FullMap/>
     </>
   )
 }
