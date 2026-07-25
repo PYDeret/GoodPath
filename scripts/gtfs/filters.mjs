@@ -13,7 +13,7 @@ export const isKeptStop = (record, stopTimeIdSet) => {
 }
 
 export const isKeptStopTime = (record, tripIdSet) => {
-    return tripIdSet.has(record.trip_id) ? record.stop_id : null;
+    return tripIdSet.has(record.trip_id) ? record : null;
 }
 
 export const isKeptTrip = (record, routeIdSet) => {
