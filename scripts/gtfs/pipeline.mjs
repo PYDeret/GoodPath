@@ -18,8 +18,8 @@ export async function main() {
     const tripShapeIdSet = new Set(trips.map(trip => trip.shape_id));
 
     const stopTimeFilter = (record) => isKeptStopTime(record, tripIdSet);
-    const stopTimeIds = await readGtfsCsv(stopTimePath, stopTimeFilter);
-    const stopTimeSet = new Set(stopTimeIds);
+    const stopTimes = await readGtfsCsv(stopTimePath, stopTimeFilter);
+    const stopTimeSet = new Set(stopTimes.map(stopTime => stopTime.stop_id));
 
     const stopFilter = (record) => isKeptStop(record, stopTimeSet);
     const stops = await readGtfsCsv(stopPath, stopFilter);
@@ -27,5 +27,12 @@ export async function main() {
     const shapeFilter = (record) => isKeptShape(record, tripShapeIdSet);
     const shapes = await readGtfsCsv(shapesPath, shapeFilter);
 
-    createJson(routes, shapes, stops, jsonPath);
+    createJson(
+        routes,
+        shapes,
+        stops,
+        stopTimes,
+        trips,
+        jsonPath
+    );
 }

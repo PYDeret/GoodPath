@@ -1,5 +1,23 @@
-export const buildData = (routes, shapes, stops) => {
+const parseGtfsTime = (time) => {
+    const [hours, minutes, seconds] = time.split(':').map(Number);
+    return hours * 3600 + minutes * 60 + seconds;
+}
+
+const groupBy = (records, key) => records.reduce((acc, record) => {
+    acc[record[key]] ??= [];
+    acc[record[key]].push(record);
+    return acc;
+}, {});
+
+export const buildData = (
+    routes,
+    shapes,
+    stops,
+    stopTimes,
+    trips
+) => {
     const data = {
+        graph: {},
         stations: [],
         shapes: [],
         lines: [],
@@ -23,12 +41,38 @@ export const buildData = (routes, shapes, stops) => {
             shapeLon: parseFloat(shape.shape_pt_lon),
             shapeSequence: parseInt(shape.shape_pt_sequence, 10),
         });
+
         return acc;
     }, {});
 
     Object.values(data.shapes).forEach(points =>
         points.sort((a, b) => a.shapeSequence - b.shapeSequence)
     );
+
+    const tripRouteById = Object.fromEntries(trips.map(trip => [trip.trip_id, trip.route_id]));
+
+    const stopTimesByTrip = groupBy(stopTimes, 'trip_id');
+    Object.values(stopTimesByTrip).forEach(points =>
+        points.sort((a, b) => parseInt(a.stop_sequence) - parseInt(b.stop_sequence))
+    );
+
+    Object.entries(stopTimesByTrip).forEach(([tripId, points]) => {
+        const routeId = tripRouteById[tripId];
+
+        for (let i = 0; i < points.length - 1; i++) {
+            const from = points[i].stop_id;
+            const to = points[i + 1].stop_id;
+            const duration = parseGtfsTime(points[i + 1].arrival_time) - parseGtfsTime(points[i].departure_time);
+
+            data.graph[from] ??= [];
+            const edge = data.graph[from].find(edge => edge.to === to);
+            if (edge) {
+                edge.duration = Math.min(edge.duration, duration);
+            } else {
+                data.graph[from].push({ to, duration, routeId });
+            }
+        }
+    });
 
     stops.forEach(stop => {
         data.stations.push({
