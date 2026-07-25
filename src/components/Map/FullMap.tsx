@@ -1,6 +1,7 @@
 import { MapContainer, TileLayer } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import StationsLayer from "../Stations/StationsLayer.tsx";
+import LinesLayer from "../Lines/LinesLayer.tsx";
 
 function FullMap() {
     return (
@@ -15,6 +16,7 @@ function FullMap() {
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 />
                 <StationsLayer />
+                <LinesLayer />
             </MapContainer>
         </div>
     )

@@ -1,6 +1,7 @@
-export const buildData = (routes, stops) => {
+export const buildData = (routes, shapes, stops) => {
     const data = {
         stations: [],
+        shapes: [],
         lines: [],
     };
 
@@ -14,6 +15,20 @@ export const buildData = (routes, stops) => {
             type: parseInt(route.route_type),
         });
     });
+
+    data.shapes = shapes.reduce((acc, shape) => {
+        acc[shape.shape_id] ??= [];
+        acc[shape.shape_id].push({
+            shapeLat: parseFloat(shape.shape_pt_lat),
+            shapeLon: parseFloat(shape.shape_pt_lon),
+            shapeSequence: parseInt(shape.shape_pt_sequence, 10),
+        });
+        return acc;
+    }, {});
+
+    Object.values(data.shapes).forEach(points =>
+        points.sort((a, b) => a.shapeSequence - b.shapeSequence)
+    );
 
     stops.forEach(stop => {
         data.stations.push({

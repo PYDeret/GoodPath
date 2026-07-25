@@ -4,6 +4,10 @@ export const isKeptRoute = (record) => {
     return KEPT_ROUTE_TYPES.includes(record.route_type) ? record : null
 }
 
+export const isKeptShape = (record, tripShapeIdSet) => {
+    return tripShapeIdSet.has(record.shape_id) ? record : null;
+}
+
 export const isKeptStop = (record, stopTimeIdSet) => {
     return stopTimeIdSet.has(record.stop_id) ? record : null;
 }
@@ -13,5 +17,5 @@ export const isKeptStopTime = (record, tripIdSet) => {
 }
 
 export const isKeptTrip = (record, routeIdSet) => {
-    return routeIdSet.has(record.route_id) ? record.trip_id : null
+    return routeIdSet.has(record.route_id) ? record : null
 }
