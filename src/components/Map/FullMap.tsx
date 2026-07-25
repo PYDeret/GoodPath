@@ -5,6 +5,12 @@ import StationsLayer from "../Stations/StationsLayer.tsx";
 import LinesLayer from "../Lines/LinesLayer.tsx";
 import PathLayer from "../Path/PathLayer.tsx";
 
+/**
+ * Root map view. Owns the departure/arrival station selection: the first
+ * station click sets `fromStopId`, the second sets `toStopId`, and a third
+ * click starts a new selection from scratch. Renders the station, line and
+ * path layers on top of the OSM tile layer.
+ */
 function FullMap() {
     const [fromStopId, setFromStopId] = useState<string>();
     const [toStopId, setToStopId] = useState<string>();

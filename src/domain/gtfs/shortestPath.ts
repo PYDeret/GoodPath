@@ -5,6 +5,12 @@ export type PathResult = {
     previous: Map<string, string>,
 }
 
+/**
+ * Dijkstra's algorithm over a `TransportGraph`: returns the shortest
+ * cumulative duration from `fromStopId` to every reachable stop, plus the
+ * predecessor of each stop on its shortest path (feed to `buildPath` to get
+ * the ordered route to a given destination).
+ */
 export const computeShortestPaths = (graph: TransportGraph, fromStopId: string): PathResult => {
     const durations = new Map<string, number>([[fromStopId, 0]]);
     const previous = new Map<string, string>();
@@ -36,6 +42,10 @@ export const computeShortestPaths = (graph: TransportGraph, fromStopId: string):
     return {durations, previous};
 }
 
+/**
+ * Reconstructs the ordered list of stops from a `computeShortestPaths`
+ * predecessor map, ending at `toStopId`.
+ */
 export const buildPath = (previous: Map<string, string>, toStopId: string): string[] => {
     const path = [toStopId];
     let current = toStopId;
