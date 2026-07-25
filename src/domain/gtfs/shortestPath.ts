@@ -78,3 +78,39 @@ export const buildPath = (previous: Map<string, string>, toStopId: string): stri
 
     return path;
 }
+
+export type WaypointPathResult = {
+    path: string[],
+    duration: number,
+}
+
+/**
+ * Shortest path from `fromStopId` to `toStopId` forced through
+ * `requiredStations` in order, by chaining Dijkstra leg by leg (each leg
+ * under the same `constraints`). Returns null if any leg is unreachable.
+ */
+export const computeShortestPathWithWaypoints = (
+    graph: TransportGraph,
+    fromStopId: string,
+    toStopId: string,
+    requiredStations: string[] = [],
+    constraints: PathConstraints = {}
+): WaypointPathResult | null => {
+    const stops = [fromStopId, ...requiredStations, toStopId];
+    const path = [stops[0]];
+    let duration = 0;
+
+    for (let i = 0; i < stops.length - 1; i++) {
+        const {durations, previous} = computeShortestPaths(graph, stops[i], constraints);
+        const legDuration = durations.get(stops[i + 1]);
+
+        if (legDuration === undefined) {
+            return null;
+        }
+
+        duration += legDuration;
+        path.push(...buildPath(previous, stops[i + 1]).slice(1));
+    }
+
+    return {path, duration};
+}
