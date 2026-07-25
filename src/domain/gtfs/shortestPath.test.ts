@@ -22,6 +22,33 @@ describe('computeShortestPaths', () => {
     });
 });
 
+describe('computeShortestPaths constraints', () => {
+    it('excludes a forbidden station from the traversal entirely', () => {
+        const {durations} = computeShortestPaths(graph, 'A', {forbiddenStations: new Set(['C'])});
+
+        expect(durations.has('C')).toBe(false);
+        expect(durations.get('D')).toBe(30);
+    });
+
+    it('excludes edges on a forbidden line', () => {
+        const {durations} = computeShortestPaths(graph, 'A', {forbiddenLines: new Set(['L2'])});
+
+        expect(durations.get('D')).toBe(20);
+    });
+
+    it('excludes a specific forbidden edge, forcing a detour', () => {
+        const {durations} = computeShortestPaths(graph, 'A', {forbiddenEdges: new Set(['B>D'])});
+
+        expect(durations.get('D')).toBe(20);
+    });
+
+    it('leaves a stop unreachable when every path to it is forbidden', () => {
+        const {durations} = computeShortestPaths(graph, 'A', {forbiddenStations: new Set(['B'])});
+
+        expect(durations.has('D')).toBe(false);
+    });
+});
+
 describe('buildPath', () => {
     it('reconstructs the ordered path from the predecessors map', () => {
         const {previous} = computeShortestPaths(graph, 'A');
