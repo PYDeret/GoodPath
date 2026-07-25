@@ -7,6 +7,11 @@ type Props = {
     toStopId?: string,
 }
 
+/**
+ * Draws the shortest path (via `useShortestPath`) between `fromStopId` and
+ * `toStopId` as a polyline through the corresponding station coordinates.
+ * Renders nothing until both stops are set and a path exists.
+ */
 function PathLayer({fromStopId, toStopId}: Props) {
     const {data} = useGtfsData();
     const {path} = useShortestPath(data?.graph, fromStopId, toStopId);

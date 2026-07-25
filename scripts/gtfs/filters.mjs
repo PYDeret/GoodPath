@@ -1,3 +1,5 @@
+// Row predicates for scripts/gtfs/pipeline.mjs: each returns the record to
+// keep it, or null to drop it, based on a set built from the previous pass.
 const KEPT_ROUTE_TYPES = ['0', '1', '2'];
 
 export const isKeptRoute = (record) => {

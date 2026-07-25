@@ -7,6 +7,11 @@ type Props = {
     toStopId?: string,
 }
 
+/**
+ * Renders every GTFS station as a map marker. Highlights `fromStopId`/`toStopId`
+ * in red and reports clicks via `onStationClick` so the parent can drive
+ * departure/arrival selection.
+ */
 function StationsLayer({onStationClick, fromStopId, toStopId}: Props) {
     const {data} = useGtfsData();
     if (!data) {

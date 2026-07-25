@@ -9,6 +9,12 @@ const groupBy = (records, key) => records.reduce((acc, record) => {
     return acc;
 }, {});
 
+/**
+ * Turns the filtered GTFS records (routes, shapes, stops, stop_times, trips)
+ * into the app's `gtfs.json` shape: lines, shapes grouped and ordered by
+ * sequence, an adjacency-list `graph` of stop-to-stop travel times, and
+ * stations.
+ */
 export const buildData = (
     routes,
     shapes,
