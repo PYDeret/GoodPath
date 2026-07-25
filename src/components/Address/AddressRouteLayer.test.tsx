@@ -6,7 +6,7 @@ import type {GtfsData} from "../../types/gtfs/gtfsData.ts";
 
 vi.mock("react-leaflet", () => ({
     Polyline: ({positions, pathOptions}: PolylineProps) => (
-        <div data-testid="polyline" data-positions={JSON.stringify(positions)} data-color={pathOptions?.color} />
+        <div data-testid="polyline" data-positions={JSON.stringify(positions)} data-color={pathOptions?.color} data-dash={pathOptions?.dashArray} />
     ),
 }));
 
@@ -33,5 +33,15 @@ describe('AddressRouteLayer', () => {
         expect(polylines[0].dataset.color).toBe('#FF0000');
         expect(polylines[1].dataset.color).toBe('blue');
         expect(JSON.parse(polylines[0].dataset.positions!)).toEqual([[48.0, 2.0], [48.1, 2.1]]);
+    });
+
+    it('draws an interchange leg as a dashed grey line', () => {
+        render(<AddressRouteLayer data={data} legs={[
+            {routeId: 'TRANSFER', fromStopId: 'A', toStopId: 'B', stopIds: ['A', 'B']},
+        ]} />);
+
+        const polyline = screen.getByTestId('polyline');
+        expect(polyline.dataset.color).toBe('grey');
+        expect(polyline.dataset.dash).toBe('6 6');
     });
 });

@@ -1,6 +1,7 @@
 import type {PathLeg} from "../../domain/gtfs/pathLegs.ts";
 import type {GtfsData} from "../../types/gtfs/gtfsData.ts";
 import {formatDuration} from "../../domain/gtfs/formatDuration.ts";
+import {TRANSFER_ROUTE_ID} from "../../domain/gtfs/transferRouteId.ts";
 
 type Props = {
     data: GtfsData,
@@ -10,7 +11,8 @@ type Props = {
 
 /**
  * Textual summary of an address-to-address route: total duration and the
- * ordered list of lines/stops to take.
+ * ordered list of lines/stops to take, with interchange legs shown as
+ * "Changement à X" rather than a bogus line name.
  */
 function RouteInfoPanel({data, legs, duration}: Props) {
     const lineById = new Map(data.lines.map(l => [l.id, l]));
@@ -22,7 +24,9 @@ function RouteInfoPanel({data, legs, duration}: Props) {
             <ol>
                 {legs.map((leg, index) => (
                     <li key={index}>
-                        Ligne {lineById.get(leg.routeId)?.shortName ?? leg.routeId} : {stationById.get(leg.fromStopId)?.name} → {stationById.get(leg.toStopId)?.name}
+                        {leg.routeId === TRANSFER_ROUTE_ID
+                            ? `Changement à ${stationById.get(leg.toStopId)?.name}`
+                            : `Ligne ${lineById.get(leg.routeId)?.shortName ?? leg.routeId} : ${stationById.get(leg.fromStopId)?.name} → ${stationById.get(leg.toStopId)?.name}`}
                     </li>
                 ))}
             </ol>

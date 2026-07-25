@@ -22,4 +22,12 @@ describe('RouteInfoPanel', () => {
         expect(screen.getByText('Durée totale : 5min')).toBeInTheDocument();
         expect(screen.getByText('Ligne 1 : Station A → Station B')).toBeInTheDocument();
     });
+
+    it('shows an interchange leg as "Changement à" instead of a line name', () => {
+        render(<RouteInfoPanel data={data} duration={300} legs={[
+            {routeId: 'TRANSFER', fromStopId: 'A', toStopId: 'B', stopIds: ['A', 'B']},
+        ]} />);
+
+        expect(screen.getByText('Changement à Station B')).toBeInTheDocument();
+    });
 });

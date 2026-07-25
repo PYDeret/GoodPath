@@ -36,6 +36,7 @@ export const createJson = (
     stops,
     stopTimes,
     trips,
+    transfers,
     filePath
 ) => {
     fs.writeFileSync(filePath, JSON.stringify(buildData(
@@ -43,6 +44,7 @@ export const createJson = (
         shapes,
         stops,
         stopTimes,
-        trips
+        trips,
+        transfers
     )));
 }
