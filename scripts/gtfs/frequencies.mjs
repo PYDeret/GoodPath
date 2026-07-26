@@ -1,5 +1,6 @@
 import {parseGtfsTime} from "./time.mjs";
 import {timeBucketFor} from "./timeBuckets.mjs";
+import {computePatternId} from "./tripPattern.mjs";
 
 const BUCKET_DURATION_MINUTES = {peak: 240, offpeak: 660, night: 540};
 // ponytail: buckets with no observed trip get a guessed 20-minute headway
@@ -34,6 +35,7 @@ const emptyCounts = () => ({
 export const computeLineFrequencies = (routes, trips, calendar, stopTimesByTrip) => {
     const dayTypesByServiceId = new Map(calendar.map(row => [row.service_id, dayTypesForService(row)]));
     const tripCountsByRoute = new Map();
+    const seenSignaturesByBucket = new Map();
 
     trips.forEach(trip => {
         const points = stopTimesByTrip[trip.trip_id];
@@ -44,6 +46,8 @@ export const computeLineFrequencies = (routes, trips, calendar, stopTimesByTrip)
         const startSeconds = parseGtfsTime(points[0].departure_time);
         const bucket = timeBucketFor(startSeconds);
         const dayTypes = dayTypesByServiceId.get(trip.service_id) ?? [];
+        const patternId = computePatternId(points.map(point => point.stop_id));
+        const signature = `${patternId}|${points[0].departure_time}`;
 
         if (!tripCountsByRoute.has(trip.route_id)) {
             tripCountsByRoute.set(trip.route_id, emptyCounts());
@@ -51,6 +55,16 @@ export const computeLineFrequencies = (routes, trips, calendar, stopTimesByTrip)
         const counts = tripCountsByRoute.get(trip.route_id);
 
         dayTypes.forEach(dayType => {
+            const seenKey = `${trip.route_id}|${dayType}|${bucket}`;
+            if (!seenSignaturesByBucket.has(seenKey)) {
+                seenSignaturesByBucket.set(seenKey, new Set());
+            }
+            const seen = seenSignaturesByBucket.get(seenKey);
+
+            if (seen.has(signature)) {
+                return;
+            }
+            seen.add(signature);
             counts[dayType][bucket]++;
         });
     });

@@ -1,5 +1,6 @@
 import {parseGtfsTime} from "./time.mjs";
 import {computeLineFrequencies} from "./frequencies.mjs";
+import {computePatternId} from "./tripPattern.mjs";
 
 const groupBy = (records, key) => records.reduce((acc, record) => {
     acc[record[key]] ??= [];
@@ -12,13 +13,13 @@ const groupBy = (records, key) => records.reduce((acc, record) => {
 // Kept in sync with src/domain/gtfs/transferRouteId.ts.
 export const TRANSFER_ROUTE_ID = 'TRANSFER';
 
-const addOrUpdateEdge = (graph, from, to, duration, routeId) => {
+const addOrUpdateEdge = (graph, from, to, duration, routeId, patternId) => {
     graph[from] ??= [];
-    const edge = graph[from].find(edge => edge.to === to);
+    const edge = graph[from].find(edge => edge.to === to && edge.patternId === patternId);
     if (edge) {
         edge.duration = Math.min(edge.duration, duration);
     } else {
-        graph[from].push({to, duration, routeId});
+        graph[from].push({to, duration, routeId, patternId});
     }
 }
 
@@ -83,21 +84,22 @@ export const buildData = (
 
     Object.entries(stopTimesByTrip).forEach(([tripId, points]) => {
         const routeId = tripRouteById[tripId];
+        const patternId = computePatternId(points.map(point => point.stop_id));
 
         for (let i = 0; i < points.length - 1; i++) {
             const from = points[i].stop_id;
             const to = points[i + 1].stop_id;
             const duration = parseGtfsTime(points[i + 1].arrival_time) - parseGtfsTime(points[i].departure_time);
 
-            addOrUpdateEdge(data.graph, from, to, duration, routeId);
+            addOrUpdateEdge(data.graph, from, to, duration, routeId, patternId);
         }
     });
 
     transfers.forEach(transfer => {
         const duration = parseInt(transfer.min_transfer_time, 10);
 
-        addOrUpdateEdge(data.graph, transfer.from_stop_id, transfer.to_stop_id, duration, TRANSFER_ROUTE_ID);
-        addOrUpdateEdge(data.graph, transfer.to_stop_id, transfer.from_stop_id, duration, TRANSFER_ROUTE_ID);
+        addOrUpdateEdge(data.graph, transfer.from_stop_id, transfer.to_stop_id, duration, TRANSFER_ROUTE_ID, TRANSFER_ROUTE_ID);
+        addOrUpdateEdge(data.graph, transfer.to_stop_id, transfer.from_stop_id, duration, TRANSFER_ROUTE_ID, TRANSFER_ROUTE_ID);
     });
 
     stops.forEach(stop => {

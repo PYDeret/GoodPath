@@ -22,25 +22,26 @@ export type Schedule = {
 
 export const edgeKey = (from: string, to: string) => `${from}>${to}`;
 
-const START_ROUTE = '';
-/** Search-state key: a stop plus the route currently being ridden (or none). */
-export const stateKey = (stopId: string, routeId: string | null) => `${stopId}|${routeId ?? START_ROUTE}`;
+const START_PATTERN = '';
+/** Search-state key: a stop plus the trip pattern currently being ridden (or none). */
+export const stateKey = (stopId: string, patternId: string | null) => `${stopId}|${patternId ?? START_PATTERN}`;
 export const stopIdOf = (state: string) => state.split('|')[0];
-const routeIdOf = (state: string): string | null => {
-    const routeId = state.split('|')[1];
-    return routeId === START_ROUTE ? null : routeId;
+const patternIdOf = (state: string): string | null => {
+    const patternId = state.split('|')[1];
+    return patternId === START_PATTERN ? null : patternId;
 }
 
 /**
  * Time-dependent Dijkstra over a `TransportGraph`. Search state is
- * (stopId, currently-ridden routeId | null): continuing a ride is free, but
- * boarding a new one (including the very first boarding, and right after a
- * `TRANSFER_ROUTE_ID` walking edge) pays an estimated wait based on that
- * line's frequency at the simulated clock time (`startTimeSeconds` plus
- * cumulative elapsed time so far). Returns cumulative elapsed seconds (not
- * clock time) per state, plus each state's predecessor state (feed to
- * `buildPath`). `constraints` excludes stations, lines (routeId) or specific
- * `from>to` edges from the traversal entirely.
+ * (stopId, currently-ridden patternId | null): continuing a ride on the
+ * same physical trip pattern is free, but boarding a new one — including
+ * the very first boarding, right after a `TRANSFER_ROUTE_ID` walking edge,
+ * or switching to a *different pattern of the same line* — pays an
+ * estimated wait based on that line's frequency at the simulated clock time
+ * (`startTimeSeconds` plus cumulative elapsed time so far). Returns
+ * cumulative elapsed seconds (not clock time) per state, plus each state's
+ * predecessor state (feed to `buildPath`). `constraints` excludes stations,
+ * lines (routeId) or specific `from>to` edges from the traversal entirely.
  */
 export const computeShortestPaths = (
     graph: TransportGraph,
@@ -64,7 +65,7 @@ export const computeShortestPaths = (
         visited.add(current);
 
         const currentStopId = stopIdOf(current);
-        const currentRouteId = routeIdOf(current);
+        const currentPatternId = patternIdOf(current);
         const currentDuration = durations.get(current)!;
 
         for (const edge of graph[currentStopId] ?? []) {
@@ -79,9 +80,9 @@ export const computeShortestPaths = (
             }
 
             const isTransfer = edge.routeId === TRANSFER_ROUTE_ID;
-            const isContinuing = !isTransfer && edge.routeId === currentRouteId;
-            const nextRouteId = isTransfer ? null : edge.routeId;
-            const nextState = stateKey(edge.to, nextRouteId);
+            const isContinuing = !isTransfer && edge.patternId === currentPatternId;
+            const nextPatternId = edge.patternId;
+            const nextState = stateKey(edge.to, nextPatternId);
 
             if (visited.has(nextState)) {
                 continue;
@@ -135,35 +136,39 @@ const bestArrivalState = (durations: Map<string, number>, stopId: string): {stat
     return best;
 }
 
-const reconstructWithArrivals = (durations: Map<string, number>, previous: Map<string, string>, endState: string): {path: string[], arrivals: number[]} => {
+const reconstructWithArrivals = (durations: Map<string, number>, previous: Map<string, string>, endState: string): {path: string[], arrivals: number[], patternIds: (string | null)[]} => {
     const path = [stopIdOf(endState)];
     const arrivals = [durations.get(endState)!];
+    const patternIds = [patternIdOf(endState)];
     let current = endState;
 
     while (previous.has(current)) {
         current = previous.get(current)!;
         path.unshift(stopIdOf(current));
         arrivals.unshift(durations.get(current)!);
+        patternIds.unshift(patternIdOf(current));
     }
 
-    return {path, arrivals};
+    return {path, arrivals, patternIds};
 }
 
 export type WaypointPathResult = {
     path: string[],
     duration: number,
     arrivals: number[],
+    patternIds: (string | null)[],
 }
 
 /**
  * Shortest path from `fromStopId` to `toStopId` forced through
  * `requiredStations` in order, departing at `startTimeSeconds` under
  * `schedule`, by chaining time-dependent Dijkstra leg by leg. Each leg's
- * search starts fresh with no carried-over "currently boarded" line, so a
- * required waypoint always pays a fresh boarding wait even if the same line
- * continues through it (accepted imprecision). `arrivals[i]` is the
- * cumulative elapsed seconds at `path[i]`. Returns null if any leg is
- * unreachable.
+ * search starts fresh with no carried-over "currently boarded" pattern, so
+ * a required waypoint always pays a fresh boarding wait even if the same
+ * line continues through it (accepted imprecision). `arrivals[i]` is the
+ * cumulative elapsed seconds at `path[i]`; `patternIds[i]` is the pattern
+ * id of the edge that arrived at `path[i]` (`patternIds[0]` is always
+ * `null`). Returns null if any leg is unreachable.
  */
 export const computeShortestPathWithWaypoints = (
     graph: TransportGraph,
@@ -177,6 +182,7 @@ export const computeShortestPathWithWaypoints = (
     const stops = [fromStopId, ...requiredStations, toStopId];
     const path = [stops[0]];
     const arrivals = [0];
+    const patternIds: (string | null)[] = [null];
     let duration = 0;
 
     for (let i = 0; i < stops.length - 1; i++) {
@@ -190,8 +196,9 @@ export const computeShortestPathWithWaypoints = (
         const leg = reconstructWithArrivals(durations, previous, arrival.state);
         path.push(...leg.path.slice(1));
         arrivals.push(...leg.arrivals.slice(1).map(a => a + duration));
+        patternIds.push(...leg.patternIds.slice(1));
         duration += arrival.duration;
     }
 
-    return {path, duration, arrivals};
+    return {path, duration, arrivals, patternIds};
 }

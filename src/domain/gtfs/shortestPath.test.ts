@@ -23,17 +23,17 @@ const scheduleWith = (...lines: Line[]): Schedule => ({
 const PEAK_START = 8 * 3600;
 
 const graph: TransportGraph = {
-    A: [{to: 'B', duration: 10, routeId: 'L1'}],
-    B: [{to: 'C', duration: 5, routeId: 'L1'}, {to: 'D', duration: 20, routeId: 'L2'}],
-    C: [{to: 'D', duration: 5, routeId: 'L1'}],
+    A: [{to: 'B', duration: 10, routeId: 'L1', patternId: 'L1'}],
+    B: [{to: 'C', duration: 5, routeId: 'L1', patternId: 'L1'}, {to: 'D', duration: 20, routeId: 'L2', patternId: 'L2'}],
+    C: [{to: 'D', duration: 5, routeId: 'L1', patternId: 'L1'}],
 };
 
 const waypointGraph: TransportGraph = {
-    A: [{to: 'B', duration: 10, routeId: 'L1'}],
-    B: [{to: 'C', duration: 5, routeId: 'L1'}, {to: 'F', duration: 1, routeId: 'L1'}],
-    C: [{to: 'D', duration: 5, routeId: 'L1'}],
-    D: [{to: 'E', duration: 3, routeId: 'L1'}],
-    F: [{to: 'E', duration: 1, routeId: 'L1'}],
+    A: [{to: 'B', duration: 10, routeId: 'L1', patternId: 'L1'}],
+    B: [{to: 'C', duration: 5, routeId: 'L1', patternId: 'L1'}, {to: 'F', duration: 1, routeId: 'L1', patternId: 'L1'}],
+    C: [{to: 'D', duration: 5, routeId: 'L1', patternId: 'L1'}],
+    D: [{to: 'E', duration: 3, routeId: 'L1', patternId: 'L1'}],
+    F: [{to: 'E', duration: 1, routeId: 'L1', patternId: 'L1'}],
 };
 
 describe('computeShortestPaths', () => {
@@ -51,7 +51,7 @@ describe('computeShortestPaths', () => {
         expect(durations.has(stateKey('A', null))).toBe(false);
     });
 
-    it('charges no boarding wait when continuing on the same route', () => {
+    it('charges no boarding wait when continuing on the same pattern', () => {
         const {durations} = computeShortestPaths(graph, 'A', PEAK_START, scheduleWith(L1, L2));
 
         const boardingOnly = durations.get(stateKey('B', 'L1'))!;
@@ -68,10 +68,24 @@ describe('computeShortestPaths', () => {
         expect(durations.get(stateKey('D', 'L2'))).toBe(300 + 10 + 300 + 20);
     });
 
+    it('charges a fresh boarding wait when the pattern changes even though the route id stays the same', () => {
+        // Same line L1, but B->C is a different physical pattern than A->B
+        // (e.g. a different train continuing the same line after a same-platform reboarding).
+        const patternChangeGraph: TransportGraph = {
+            A: [{to: 'B', duration: 10, routeId: 'L1', patternId: 'P1'}],
+            B: [{to: 'C', duration: 5, routeId: 'L1', patternId: 'P2'}],
+        };
+
+        const {durations} = computeShortestPaths(patternChangeGraph, 'A', PEAK_START, scheduleWith(L1));
+
+        // board P1 (wait 300) + 10s ride + board P2 despite same routeId (wait 300) + 5s ride
+        expect(durations.get(stateKey('C', 'P2'))).toBe(300 + 10 + 300 + 5);
+    });
+
     it('uses the simulated clock (start + elapsed) to pick the bucket at boarding time', () => {
         const nightLine = lineWithFrequency('L1', 10, 40); // peak=10min, offpeak=40min
         const schedule = scheduleWith(nightLine);
-        const lateGraph: TransportGraph = {A: [{to: 'B', duration: 0, routeId: 'L1'}]};
+        const lateGraph: TransportGraph = {A: [{to: 'B', duration: 0, routeId: 'L1', patternId: 'L1'}]};
 
         // Boarding at PEAK_START itself: bucket is peak -> wait = 10*60/2 = 300
         const {durations: peakBoarding} = computeShortestPaths(lateGraph, 'A', PEAK_START, schedule);
@@ -94,10 +108,10 @@ describe('computeShortestPaths', () => {
 
         const laterGraph: TransportGraph = {
             // 61-minute ride: departs 8:00 (peak), arrives 9:01 (past the 9:00 peak cutoff -> offpeak).
-            A: [{to: 'B', duration: 61 * 60, routeId: 'L1'}],
-            // Zero-duration transfer resets the "currently boarded" route without adding elapsed time.
-            B: [{to: 'C', duration: 0, routeId: 'TRANSFER'}],
-            C: [{to: 'D', duration: 0, routeId: 'L2'}],
+            A: [{to: 'B', duration: 61 * 60, routeId: 'L1', patternId: 'L1'}],
+            // Zero-duration transfer resets the "currently boarded" pattern without adding elapsed time.
+            B: [{to: 'C', duration: 0, routeId: 'TRANSFER', patternId: 'TRANSFER'}],
+            C: [{to: 'D', duration: 0, routeId: 'L2', patternId: 'L2'}],
         };
 
         const {durations} = computeShortestPaths(laterGraph, 'A', PEAK_START, schedule);
@@ -110,9 +124,9 @@ describe('computeShortestPaths', () => {
 
     it('resets the boarding state after a transfer edge, forcing a wait on the next ride', () => {
         const transferGraph: TransportGraph = {
-            A: [{to: 'B', duration: 10, routeId: 'L1'}],
-            B: [{to: 'C', duration: 60, routeId: 'TRANSFER'}],
-            C: [{to: 'D', duration: 5, routeId: 'L1'}],
+            A: [{to: 'B', duration: 10, routeId: 'L1', patternId: 'L1'}],
+            B: [{to: 'C', duration: 60, routeId: 'TRANSFER', patternId: 'TRANSFER'}],
+            C: [{to: 'D', duration: 5, routeId: 'L1', patternId: 'L1'}],
         };
 
         const {durations} = computeShortestPaths(transferGraph, 'A', PEAK_START, scheduleWith(L1));
@@ -150,7 +164,12 @@ describe('computeShortestPathWithWaypoints', () => {
         const result = computeShortestPathWithWaypoints(waypointGraph, 'A', 'E', PEAK_START, waypointSchedule);
 
         // single boarding wait (300s) + ride time (10+1+1=12s)
-        expect(result).toEqual({path: ['A', 'B', 'F', 'E'], duration: 312, arrivals: [0, 300 + 10, 300 + 11, 300 + 12]});
+        expect(result).toEqual({
+            path: ['A', 'B', 'F', 'E'],
+            duration: 312,
+            arrivals: [0, 300 + 10, 300 + 11, 300 + 12],
+            patternIds: [null, 'L1', 'L1', 'L1'],
+        });
     });
 
     it('forces the path through the required station, even if longer, and pays a fresh boarding wait per leg', () => {
@@ -161,12 +180,26 @@ describe('computeShortestPathWithWaypoints', () => {
         expect(result?.duration).toBe(320 + 303);
         expect(result?.path).toEqual(['A', 'B', 'C', 'D', 'E']);
         expect(result?.arrivals).toEqual([0, 300 + 10, 300 + 15, 320, 320 + 303]);
+        expect(result?.patternIds).toEqual([null, 'L1', 'L1', 'L1', 'L1']);
     });
 
     it('returns null when a leg has no path under the given constraints', () => {
         const result = computeShortestPathWithWaypoints(waypointGraph, 'A', 'E', PEAK_START, waypointSchedule, [], {forbiddenStations: new Set(['B'])});
 
         expect(result).toBeNull();
+    });
+
+    it('records the transfer sentinel as the pattern id for a stop reached via a transfer edge', () => {
+        const transferGraph: TransportGraph = {
+            A: [{to: 'B', duration: 10, routeId: 'L1', patternId: 'L1'}],
+            B: [{to: 'C', duration: 60, routeId: 'TRANSFER', patternId: 'TRANSFER'}],
+            C: [{to: 'D', duration: 5, routeId: 'L1', patternId: 'L1'}],
+        };
+
+        const result = computeShortestPathWithWaypoints(transferGraph, 'A', 'D', PEAK_START, scheduleWith(L1));
+
+        expect(result?.path).toEqual(['A', 'B', 'C', 'D']);
+        expect(result?.patternIds).toEqual([null, 'L1', 'TRANSFER', 'L1']);
     });
 });
 

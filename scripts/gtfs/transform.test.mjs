@@ -98,7 +98,33 @@ describe('buildData', () => {
 
         const data = buildData([], [], [], [], [], transfers);
 
-        expect(data.graph.B).toContainEqual({to: 'C', duration: 90, routeId: 'TRANSFER'});
-        expect(data.graph.C).toContainEqual({to: 'B', duration: 90, routeId: 'TRANSFER'});
+        expect(data.graph.B).toContainEqual({to: 'C', duration: 90, routeId: 'TRANSFER', patternId: 'TRANSFER'});
+        expect(data.graph.C).toContainEqual({to: 'B', duration: 90, routeId: 'TRANSFER', patternId: 'TRANSFER'});
+    });
+
+    it('keeps edges from different stopping patterns separate, even for the same stop pair and route', () => {
+        const localTrip = [{trip_id: 'TLocal', route_id: 'R1', shape_id: 'S1'}];
+        const expressTrip = [{trip_id: 'TExpress', route_id: 'R1', shape_id: 'S1'}];
+        const tripsWithTwoPatterns = [...localTrip, ...expressTrip];
+
+        // TLocal stops at A, B, C. TExpress skips B, going straight A -> C.
+        const stopTimesTwoPatterns = [
+            {trip_id: 'TLocal', stop_id: 'A', stop_sequence: '1', arrival_time: '10:00:00', departure_time: '10:00:00'},
+            {trip_id: 'TLocal', stop_id: 'B', stop_sequence: '2', arrival_time: '10:05:00', departure_time: '10:05:00'},
+            {trip_id: 'TLocal', stop_id: 'C', stop_sequence: '3', arrival_time: '10:10:00', departure_time: '10:10:00'},
+            {trip_id: 'TExpress', stop_id: 'A', stop_sequence: '1', arrival_time: '11:00:00', departure_time: '11:00:00'},
+            {trip_id: 'TExpress', stop_id: 'C', stop_sequence: '2', arrival_time: '11:03:00', departure_time: '11:03:00'},
+        ];
+
+        const data = buildData([], [], [], stopTimesTwoPatterns, tripsWithTwoPatterns);
+
+        // TLocal never has an A->C edge (it goes via B), TExpress does. They
+        // must not merge into a single A->C edge distinct from A->B->C.
+        expect(data.graph.A).toHaveLength(2);
+        expect(data.graph.A).toContainEqual(expect.objectContaining({to: 'B', duration: 300}));
+        expect(data.graph.A).toContainEqual(expect.objectContaining({to: 'C', duration: 180}));
+
+        const [edgeToB, edgeToC] = data.graph.A;
+        expect(edgeToB.patternId).not.toBe(edgeToC.patternId);
     });
 });

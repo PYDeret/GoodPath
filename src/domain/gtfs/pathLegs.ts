@@ -10,22 +10,35 @@ export type PathLeg = {
     isTransfer: boolean,
 }
 
+const findEdge = (graph: TransportGraph, from: string, to: string, patternId: string | null) => {
+    const edges = graph[from] ?? [];
+
+    if (patternId === TRANSFER_ROUTE_ID) {
+        return edges.find(edge => edge.to === to && edge.routeId === TRANSFER_ROUTE_ID);
+    }
+
+    return edges.find(edge => edge.to === to && edge.patternId === patternId);
+}
+
 /**
  * Groups a shortest-path stop sequence into legs of consecutive stops
  * travelled on the same route, for display as "line X from A to B". Each
  * leg's `duration` is the sum of the per-edge elapsed time (`arrivals`,
  * parallel to `path`, as returned by `computeShortestPathWithWaypoints`),
- * so it includes any boarding wait charged on the leg's first edge. Legs
- * riding an interchange edge (see transferRouteId.ts) are flagged via
- * `isTransfer` so consumers don't need to know the sentinel routeId.
+ * so it includes any boarding wait charged on the leg's first edge.
+ * `patternIds` (also parallel to `path`) disambiguates which edge was
+ * actually taken when several edges connect the same stop pair via
+ * different trip patterns. Legs riding an interchange edge (see
+ * transferRouteId.ts) are flagged via `isTransfer` so consumers don't need
+ * to know the sentinel routeId.
  */
-export const buildPathLegs = (graph: TransportGraph, path: string[], arrivals: number[]): PathLeg[] => {
+export const buildPathLegs = (graph: TransportGraph, path: string[], arrivals: number[], patternIds: (string | null)[]): PathLeg[] => {
     const legs: PathLeg[] = [];
 
     for (let i = 0; i < path.length - 1; i++) {
         const from = path[i];
         const to = path[i + 1];
-        const routeId = graph[from]?.find(edge => edge.to === to)?.routeId;
+        const routeId = findEdge(graph, from, to, patternIds[i + 1])?.routeId;
 
         if (routeId === undefined) {
             continue;
