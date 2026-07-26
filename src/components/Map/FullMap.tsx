@@ -30,9 +30,10 @@ function FullMap() {
     const [toStopId, setToStopId] = useState<string>();
     const [fromAddress, setFromAddress] = useState('');
     const [toAddress, setToAddress] = useState('');
+    const [departureDate, setDepartureDate] = useState<Date>();
 
     const {data} = useGtfsData();
-    const addressRoute = useAddressRoute(data, fromAddress, toAddress);
+    const addressRoute = useAddressRoute(data, fromAddress, toAddress, departureDate);
     const routeStatus = computeRouteStatus({
         fromAddress,
         toAddress,
@@ -53,7 +54,7 @@ function FullMap() {
 
     return (
         <div className="app-map">
-            <AddressForm onSubmit={(from, to) => { setFromAddress(from); setToAddress(to); }} />
+            <AddressForm onSubmit={(from, to, date) => { setFromAddress(from); setToAddress(to); setDepartureDate(date); }} />
             <MapContainer
                 center={[48.85, 2.35]}
                 zoom={13}
