@@ -1,5 +1,5 @@
 import {describe, expect, it} from "vitest";
-import {isKeptRoute, isKeptShape, isKeptStop, isKeptStopTime, isKeptTransfer, isKeptTrip} from "./filters.mjs";
+import {isKeptCalendar, isKeptRoute, isKeptShape, isKeptStop, isKeptStopTime, isKeptTransfer, isKeptTrip} from "./filters.mjs";
 
 describe('isKeptRoute', () => {
     it.each(['0', '1', '2'])('keeps route_type %s', (route_type) => {
@@ -69,5 +69,16 @@ describe('isKeptTransfer', () => {
     it('rejects a transfer referencing a dropped stop', () => {
         const record = {from_stop_id: 'A', to_stop_id: 'C', transfer_type: '2'};
         expect(isKeptTransfer(record, new Set(['A', 'B']))).toBeNull();
+    });
+});
+
+describe('isKeptCalendar', () => {
+    it('keeps a calendar row referenced by a kept trip', () => {
+        const record = {service_id: 'S1'};
+        expect(isKeptCalendar(record, new Set(['S1']))).toBe(record);
+    });
+
+    it('rejects a calendar row referenced by no kept trip', () => {
+        expect(isKeptCalendar({service_id: 'S2'}, new Set(['S1']))).toBeNull();
     });
 });

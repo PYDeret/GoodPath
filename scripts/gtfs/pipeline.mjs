@@ -1,6 +1,6 @@
 import path from 'node:path'
 import {createJson, readGtfsCsv} from './io.mjs';
-import {isKeptRoute, isKeptShape, isKeptStop, isKeptStopTime, isKeptTransfer, isKeptTrip} from "./filters.mjs";
+import {isKeptCalendar, isKeptRoute, isKeptShape, isKeptStop, isKeptStopTime, isKeptTransfer, isKeptTrip} from "./filters.mjs";
 
 const routePath = path.resolve(import.meta.dirname, '../../data/gtfs/routes.txt');
 const shapesPath = path.resolve(import.meta.dirname, '../../data/gtfs/shapes.txt');
@@ -8,6 +8,7 @@ const stopPath = path.resolve(import.meta.dirname, '../../data/gtfs/stops.txt');
 const stopTimePath = path.resolve(import.meta.dirname, '../../data/gtfs/stop_times.txt');
 const tripPath = path.resolve(import.meta.dirname, '../../data/gtfs/trips.txt');
 const transfersPath = path.resolve(import.meta.dirname, '../../data/gtfs/transfers.txt');
+const calendarPath = path.resolve(import.meta.dirname, '../../data/gtfs/calendar.txt');
 const jsonPath = path.resolve(import.meta.dirname, '../../public/data/gtfs.json');
 
 export async function main() {
@@ -17,6 +18,9 @@ export async function main() {
     const trips = await readGtfsCsv(tripPath, tripFilter);
     const tripIdSet = new Set(trips.map(trip => trip.trip_id));
     const tripShapeIdSet = new Set(trips.map(trip => trip.shape_id));
+    const tripServiceIdSet = new Set(trips.map(trip => trip.service_id));
+    const calendarFilter = (record) => isKeptCalendar(record, tripServiceIdSet);
+    const calendar = await readGtfsCsv(calendarPath, calendarFilter);
 
     const stopTimeFilter = (record) => isKeptStopTime(record, tripIdSet);
     const stopTimes = await readGtfsCsv(stopTimePath, stopTimeFilter);
@@ -39,6 +43,7 @@ export async function main() {
         stopTimes,
         trips,
         transfers,
+        calendar,
         jsonPath
     );
 }
