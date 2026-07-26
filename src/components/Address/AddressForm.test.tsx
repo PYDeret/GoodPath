@@ -40,4 +40,29 @@ describe('AddressForm', () => {
         const [, , departureDate] = onSubmit.mock.calls[0];
         expect(departureDate).toEqual(new Date('2026-07-26T14:30:00'));
     });
+
+    it('shows a validation message per empty address field and does not submit', async () => {
+        const onSubmit = vi.fn();
+        renderWithQueryClient(<AddressForm onSubmit={onSubmit} />);
+
+        await userEvent.click(screen.getByText('Itinéraire'));
+
+        expect(screen.getByText('Adresse de départ requise.')).toBeInTheDocument();
+        expect(screen.getByText("Adresse d'arrivée requise.")).toBeInTheDocument();
+        expect(onSubmit).not.toHaveBeenCalled();
+    });
+
+    it('clears a field\'s validation message as soon as it is filled in', async () => {
+        vi.stubGlobal('fetch', vi.fn().mockResolvedValue({json: () => Promise.resolve({features: []})}));
+        const onSubmit = vi.fn();
+        renderWithQueryClient(<AddressForm onSubmit={onSubmit} />);
+
+        await userEvent.click(screen.getByText('Itinéraire'));
+        expect(screen.getByText('Adresse de départ requise.')).toBeInTheDocument();
+
+        await userEvent.type(screen.getByPlaceholderText('Adresse de départ'), '1 rue de Paris');
+
+        expect(screen.queryByText('Adresse de départ requise.')).not.toBeInTheDocument();
+        expect(screen.getByText("Adresse d'arrivée requise.")).toBeInTheDocument();
+    });
 });

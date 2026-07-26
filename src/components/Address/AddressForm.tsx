@@ -12,28 +12,64 @@ type Props = {
  * `undefined` if the time field is left empty, meaning "now") on submit;
  * geocoding and routing happen upstream.
  */
+type FieldErrors = {
+    from?: string,
+    to?: string,
+}
+
 function AddressForm({onSubmit}: Props) {
     const [fromAddress, setFromAddress] = useState('');
     const [toAddress, setToAddress] = useState('');
     const [departureTime, setDepartureTime] = useState('');
+    const [errors, setErrors] = useState<FieldErrors>({});
+
+    const handleFromChange = (value: string) => {
+        setFromAddress(value);
+        if (value.trim()) {
+            setErrors(current => ({...current, from: undefined}));
+        }
+    };
+
+    const handleToChange = (value: string) => {
+        setToAddress(value);
+        if (value.trim()) {
+            setErrors(current => ({...current, to: undefined}));
+        }
+    };
 
     const handleSubmit = (event: FormEvent) => {
         event.preventDefault();
+
+        const nextErrors: FieldErrors = {
+            from: fromAddress.trim() ? undefined : 'Adresse de départ requise.',
+            to: toAddress.trim() ? undefined : "Adresse d'arrivée requise.",
+        };
+        if (nextErrors.from || nextErrors.to) {
+            setErrors(nextErrors);
+            return;
+        }
+
         onSubmit(fromAddress, toAddress, departureTime ? new Date(departureTime) : undefined);
     };
 
     return (
         <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-            <AddressInput
-                placeholder="Adresse de départ"
-                value={fromAddress}
-                onChange={setFromAddress}
-            />
-            <AddressInput
-                placeholder="Adresse d'arrivée"
-                value={toAddress}
-                onChange={setToAddress}
-            />
+            <div>
+                <AddressInput
+                    placeholder="Adresse de départ"
+                    value={fromAddress}
+                    onChange={handleFromChange}
+                />
+                {errors.from && <p className="mt-1 text-sm text-red-600">{errors.from}</p>}
+            </div>
+            <div>
+                <AddressInput
+                    placeholder="Adresse d'arrivée"
+                    value={toAddress}
+                    onChange={handleToChange}
+                />
+                {errors.to && <p className="mt-1 text-sm text-red-600">{errors.to}</p>}
+            </div>
             <label className="flex flex-col gap-1 text-sm text-[var(--text)]">
                 Heure de départ
                 <input
