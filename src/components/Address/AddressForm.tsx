@@ -23,7 +23,7 @@ function AddressForm({onSubmit}: Props) {
     };
 
     return (
-        <form onSubmit={handleSubmit} className="address-form">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
             <AddressInput
                 placeholder="Adresse de départ"
                 value={fromAddress}
@@ -34,15 +34,22 @@ function AddressForm({onSubmit}: Props) {
                 value={toAddress}
                 onChange={setToAddress}
             />
-            <label>
+            <label className="flex flex-col gap-1 text-sm text-[var(--text)]">
                 Heure de départ
                 <input
                     type="datetime-local"
                     value={departureTime}
                     onChange={e => setDepartureTime(e.target.value)}
+                    className="rounded-lg border px-3 py-2 text-[var(--text-h)] outline-none transition-colors focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-border)]"
+                    style={{borderColor: 'var(--border)'}}
                 />
             </label>
-            <button type="submit">Itinéraire</button>
+            <button
+                type="submit"
+                className="rounded-lg bg-[var(--accent)] px-4 py-2 font-medium text-white transition-opacity hover:opacity-90"
+            >
+                Itinéraire
+            </button>
         </form>
     );
 }

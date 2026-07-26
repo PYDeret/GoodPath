@@ -48,6 +48,8 @@ function AddressInput({placeholder, value, onChange}: Props) {
                         setIsOpen(false);
                     }
                 }}
+                className="w-full rounded-lg border px-3 py-2 text-[var(--text-h)] outline-none transition-colors focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-border)]"
+                style={{borderColor: 'var(--border)'}}
             />
             {isOpen && suggestions && suggestions.length > 0 && (
                 <ul className="address-input-suggestions">
