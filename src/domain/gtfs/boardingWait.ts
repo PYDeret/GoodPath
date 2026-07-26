@@ -11,6 +11,6 @@ const FALLBACK_FREQUENCY_MINUTES = 20;
  */
 export const computeBoardingWaitSeconds = (line: Line | undefined, dayType: DayType, clockSeconds: number): number => {
     const bucket = timeBucketFor(clockSeconds);
-    const frequencyMinutes = line?.frequencies[dayType][bucket] ?? FALLBACK_FREQUENCY_MINUTES;
+    const frequencyMinutes = line?.frequencies?.[dayType]?.[bucket] ?? FALLBACK_FREQUENCY_MINUTES;
     return (frequencyMinutes * 60) / 2;
 }

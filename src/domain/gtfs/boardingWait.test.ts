@@ -26,4 +26,9 @@ describe('computeBoardingWaitSeconds', () => {
     it('falls back to a 20-minute frequency when no line is given', () => {
         expect(computeBoardingWaitSeconds(undefined, 'weekday', 8 * 3600)).toBe(20 * 60 / 2);
     });
+
+    it('falls back to a 20-minute frequency when the line has no frequencies data', () => {
+        const lineWithoutFrequencies = {...line, frequencies: undefined} as unknown as Line;
+        expect(computeBoardingWaitSeconds(lineWithoutFrequencies, 'weekday', 8 * 3600)).toBe(20 * 60 / 2);
+    });
 });
