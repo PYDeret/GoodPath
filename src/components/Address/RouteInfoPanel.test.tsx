@@ -31,4 +31,12 @@ describe('RouteInfoPanel', () => {
 
         expect(screen.getByText('Changement à Station B (1min)')).toBeInTheDocument();
     });
+
+    it('falls back to the raw route id as plain text when the leg\'s line is not in data.lines', () => {
+        render(<RouteInfoPanel data={data} duration={300} legs={[
+            {routeId: 'UNKNOWN', fromStopId: 'A', toStopId: 'B', stopIds: ['A', 'B'], duration: 300, isTransfer: false},
+        ]} />);
+
+        expect(screen.getByText(/UNKNOWN.*Station A → Station B \(5min\)/)).toBeInTheDocument();
+    });
 });
