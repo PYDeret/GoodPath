@@ -32,7 +32,6 @@ export const readGtfsCsv = (filePath, onRecord) => {
 
 export const createJson = (
     routes,
-    shapes,
     stops,
     stopTimes,
     trips,
@@ -42,7 +41,6 @@ export const createJson = (
 ) => {
     fs.writeFileSync(filePath, JSON.stringify(buildData(
         routes,
-        shapes,
         stops,
         stopTimes,
         trips,
