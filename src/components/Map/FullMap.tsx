@@ -4,9 +4,10 @@ import {useState} from "react";
 import StationsLayer from "../Stations/StationsLayer.tsx";
 import LinesLayer from "../Lines/LinesLayer.tsx";
 import PathLayer from "../Path/PathLayer.tsx";
-import AddressForm from "../Address/AddressForm.tsx";
+import SearchPanel from "../Address/SearchPanel.tsx";
 import AddressRouteLayer from "../Address/AddressRouteLayer.tsx";
 import RouteInfoPanel from "../Address/RouteInfoPanel.tsx";
+import RouteResultSheet from "../Address/RouteResultSheet.tsx";
 import {useGtfsData} from "../../hooks/gtfs/useGtfsData.ts";
 import {useAddressRoute} from "../../hooks/gtfs/useAddressRoute.ts";
 import {computeRouteStatus} from "../../domain/gtfs/routeStatus.ts";
@@ -22,8 +23,11 @@ const STATUS_MESSAGES = {
  * Root map view. Owns the departure/arrival station selection (click-based:
  * first click sets `fromStopId`, second sets `toStopId`, third resets) and
  * the address-based routing form. Renders the station, line, click-path and
- * address-route layers on top of the OSM tile layer, plus a route info
- * panel (or a status message when geocoding fails or no path exists).
+ * address-route layers on top of the OSM tile layer. Layout is responsive:
+ * `SearchPanel` and `RouteResultSheet` present as a fixed sidebar/inline
+ * panel on desktop and as a floating collapsible pill/bottom sheet on
+ * mobile (see their own docs) — the map itself is a single instance that
+ * simply fills the remaining space in both cases.
  */
 function FullMap() {
     const [fromStopId, setFromStopId] = useState<string>();
@@ -52,29 +56,35 @@ function FullMap() {
         }
     };
 
+    const hasResult = (!!data && routeStatus === 'found' && addressRoute.duration !== null) || (routeStatus !== 'idle' && routeStatus !== 'found');
+
     return (
-        <div className="app-map">
-            <AddressForm onSubmit={(from, to, date) => { setFromAddress(from); setToAddress(to); setDepartureDate(date); }} />
-            <MapContainer
-                center={[48.85, 2.35]}
-                zoom={13}
-                className='app-map-container'
-            >
-                <TileLayer
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                />
-                <StationsLayer onStationClick={handleStationClick} fromStopId={fromStopId} toStopId={toStopId} />
-                <LinesLayer />
-                <PathLayer fromStopId={fromStopId} toStopId={toStopId} />
-                {data && routeStatus === 'found' && <AddressRouteLayer data={data} legs={addressRoute.legs} />}
-            </MapContainer>
-            {data && routeStatus === 'found' && addressRoute.duration !== null && (
-                <RouteInfoPanel data={data} legs={addressRoute.legs} duration={addressRoute.duration} />
-            )}
-            {routeStatus !== 'idle' && routeStatus !== 'found' && (
-                <p className="route-status">{STATUS_MESSAGES[routeStatus]}</p>
-            )}
+        <div className="relative flex h-svh w-full">
+            <SearchPanel onSubmit={(from, to, date) => { setFromAddress(from); setToAddress(to); setDepartureDate(date); }} />
+            <div className="relative flex-1">
+                <MapContainer
+                    center={[48.85, 2.35]}
+                    zoom={13}
+                    className="h-full w-full"
+                >
+                    <TileLayer
+                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    />
+                    <StationsLayer onStationClick={handleStationClick} fromStopId={fromStopId} toStopId={toStopId} />
+                    <LinesLayer />
+                    <PathLayer fromStopId={fromStopId} toStopId={toStopId} />
+                    {data && routeStatus === 'found' && <AddressRouteLayer data={data} legs={addressRoute.legs} />}
+                </MapContainer>
+            </div>
+            <RouteResultSheet visible={hasResult}>
+                {data && routeStatus === 'found' && addressRoute.duration !== null && (
+                    <RouteInfoPanel data={data} legs={addressRoute.legs} duration={addressRoute.duration} />
+                )}
+                {routeStatus !== 'idle' && routeStatus !== 'found' && (
+                    <p className="route-status">{STATUS_MESSAGES[routeStatus]}</p>
+                )}
+            </RouteResultSheet>
         </div>
     )
 }
