@@ -24,7 +24,6 @@ vi.mock("../Stations/StationsLayer.tsx", () => ({
     ),
 }));
 
-vi.mock("../Lines/LinesLayer.tsx", () => ({default: () => null}));
 vi.mock("../Path/PathLayer.tsx", () => ({default: () => null}));
 
 const renderFullMap = () => {

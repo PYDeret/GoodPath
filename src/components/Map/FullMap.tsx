@@ -2,7 +2,6 @@ import { MapContainer, TileLayer } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import {useMemo, useState} from "react";
 import StationsLayer from "../Stations/StationsLayer.tsx";
-import LinesLayer from "../Lines/LinesLayer.tsx";
 import PathLayer from "../Path/PathLayer.tsx";
 import SearchPanel from "../Address/SearchPanel.tsx";
 import AddressRouteLayer from "../Address/AddressRouteLayer.tsx";
@@ -101,7 +100,6 @@ function FullMap() {
                         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                     />
                     <StationsLayer onStationClick={handleStationClick} fromStopId={fromStopId} toStopId={toStopId} />
-                    <LinesLayer />
                     <PathLayer fromStopId={fromStopId} toStopId={toStopId} />
                     {data && routeStatus === 'found' && <AddressRouteLayer data={data} legs={addressRoute.legs} />}
                     <AddressRouteMarkers fromStation={addressRoute.fromStation ?? undefined} toStation={addressRoute.toStation ?? undefined} />
