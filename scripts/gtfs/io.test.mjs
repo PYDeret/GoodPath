@@ -52,11 +52,14 @@ describe('createJson', () => {
         tmpFiles.push(filePath);
 
         const routes = [{route_id: 'R1', route_short_name: '1', route_long_name: 'Line 1', route_color: 'FFF', route_text_color: '000', route_type: '1'}];
-        createJson(routes, [], [], [], [], [], filePath);
+        createJson(routes, [], [], [], [], [], [], filePath);
 
         const written = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
         expect(written.lines).toEqual([
-            {id: 'R1', shortName: '1', longName: 'Line 1', color: 'FFF', textColor: '000', type: 1},
+            {id: 'R1', shortName: '1', longName: 'Line 1', color: 'FFF', textColor: '000', type: 1, frequencies: {
+                weekday: {peak: 20, offpeak: 20, night: 20},
+                weekend: {peak: 20, offpeak: 20, night: 20},
+            }},
         ]);
     });
 });

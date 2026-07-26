@@ -22,7 +22,7 @@ const stations = [
 describe('PathLayer', () => {
     it('renders nothing when the GTFS data is not loaded', () => {
         vi.mocked(useGtfsData).mockReturnValue({data: undefined} as ReturnType<typeof useGtfsData>);
-        vi.mocked(useShortestPath).mockReturnValue({path: null, duration: null});
+        vi.mocked(useShortestPath).mockReturnValue({path: null, duration: null, arrivals: []});
 
         const {container} = render(<PathLayer />);
 
@@ -31,7 +31,7 @@ describe('PathLayer', () => {
 
     it('renders nothing when no path was found', () => {
         vi.mocked(useGtfsData).mockReturnValue({data: {stations}} as ReturnType<typeof useGtfsData>);
-        vi.mocked(useShortestPath).mockReturnValue({path: null, duration: null});
+        vi.mocked(useShortestPath).mockReturnValue({path: null, duration: null, arrivals: []});
 
         const {container} = render(<PathLayer fromStopId="A" toStopId="B" />);
 
@@ -40,7 +40,7 @@ describe('PathLayer', () => {
 
     it('draws a polyline through the stations on the path, in order', () => {
         vi.mocked(useGtfsData).mockReturnValue({data: {stations}} as ReturnType<typeof useGtfsData>);
-        vi.mocked(useShortestPath).mockReturnValue({path: ['A', 'B'], duration: 300});
+        vi.mocked(useShortestPath).mockReturnValue({path: ['A', 'B'], duration: 300, arrivals: [0, 300]});
 
         render(<PathLayer fromStopId="A" toStopId="B" />);
 

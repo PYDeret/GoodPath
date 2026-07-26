@@ -2,20 +2,23 @@ import {useState} from "react";
 import type {FormEvent} from "react";
 
 type Props = {
-    onSubmit: (fromAddress: string, toAddress: string) => void,
+    onSubmit: (fromAddress: string, toAddress: string, departureDate?: Date) => void,
 }
 
 /**
- * Departure/arrival address inputs. Calls `onSubmit` with both raw address
- * strings on submit; geocoding and routing happen upstream.
+ * Departure/arrival address inputs plus an optional departure time. Calls
+ * `onSubmit` with both raw address strings and the chosen `Date` (or
+ * `undefined` if the time field is left empty, meaning "now") on submit;
+ * geocoding and routing happen upstream.
  */
 function AddressForm({onSubmit}: Props) {
     const [fromAddress, setFromAddress] = useState('');
     const [toAddress, setToAddress] = useState('');
+    const [departureTime, setDepartureTime] = useState('');
 
     const handleSubmit = (event: FormEvent) => {
         event.preventDefault();
-        onSubmit(fromAddress, toAddress);
+        onSubmit(fromAddress, toAddress, departureTime ? new Date(departureTime) : undefined);
     };
 
     return (
@@ -32,6 +35,14 @@ function AddressForm({onSubmit}: Props) {
                 value={toAddress}
                 onChange={e => setToAddress(e.target.value)}
             />
+            <label>
+                Heure de départ
+                <input
+                    type="datetime-local"
+                    value={departureTime}
+                    onChange={e => setDepartureTime(e.target.value)}
+                />
+            </label>
             <button type="submit">Itinéraire</button>
         </form>
     );

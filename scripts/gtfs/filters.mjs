@@ -22,3 +22,7 @@ export const isKeptTransfer = (record, stopIdSet) => {
 
     return stopIdSet.has(record.from_stop_id) && stopIdSet.has(record.to_stop_id) ? record : null;
 }
+
+export const isKeptCalendar = (record, serviceIdSet) => {
+    return serviceIdSet.has(record.service_id) ? record : null;
+}

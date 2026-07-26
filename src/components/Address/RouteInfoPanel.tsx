@@ -25,9 +25,8 @@ function RouteInfoPanel({data, legs, duration}: Props) {
                 {legs.map((leg, index) => (
                     <li key={index}>
                         {leg.isTransfer
-                            ? `Changement à ${stationById.get(leg.toStopId)?.name}`
-                            : `Ligne ${lineById.get(leg.routeId)?.shortName ?? leg.routeId} : ${stationById.get(leg.fromStopId)?.name} → ${stationById.get(leg.toStopId)?.name}`
-                        }
+                            ? `Changement à ${stationById.get(leg.toStopId)?.name} (${formatDuration(leg.duration)})`
+                            : `Ligne ${lineById.get(leg.routeId)?.shortName ?? leg.routeId} : ${stationById.get(leg.fromStopId)?.name} → ${stationById.get(leg.toStopId)?.name} (${formatDuration(leg.duration)})`}
                     </li>
                 ))}
             </ol>

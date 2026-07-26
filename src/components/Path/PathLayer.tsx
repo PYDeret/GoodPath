@@ -15,7 +15,7 @@ type Props = {
  */
 function PathLayer({fromStopId, toStopId}: Props) {
     const {data} = useGtfsData();
-    const {path} = useShortestPath(data?.graph, fromStopId, toStopId);
+    const {path} = useShortestPath(data?.graph, fromStopId, toStopId, data?.lines);
     const stationById = useMemo(() => new Map(data?.stations.map(s => [s.id, s])), [data]);
 
     if (!data || !path) {
