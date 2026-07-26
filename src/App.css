@@ -16,3 +16,40 @@
 .route-info-panel {
   margin-top: 0.5rem;
 }
+
+.address-input {
+  position: relative;
+  flex: 1;
+}
+
+.address-input input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.address-input-suggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  /* ponytail: above Leaflet's panes/controls (z-index up to 1000), so the dropdown paints over the map */
+  z-index: 1001;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.address-input-suggestion {
+  padding: 0.4rem 0.6rem;
+  cursor: pointer;
+  text-align: left;
+}
+
+.address-input-suggestion:hover {
+  background: var(--accent-bg);
+}
