@@ -78,6 +78,7 @@ function FullMap() {
                 <MapContainer
                     center={[48.85, 2.35]}
                     zoom={13}
+                    minZoom={11}
                     className="h-full w-full"
                 >
                     <TileLayer
