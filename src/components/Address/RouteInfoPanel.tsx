@@ -2,6 +2,7 @@ import {useMemo} from "react";
 import type {PathLeg} from "../../domain/gtfs/pathLegs.ts";
 import type {GtfsData} from "../../types/gtfs/gtfsData.ts";
 import {formatDuration} from "../../domain/gtfs/formatDuration.ts";
+import LineBadge from "./LineBadge.tsx";
 
 type Props = {
     data: GtfsData,
@@ -12,7 +13,8 @@ type Props = {
 /**
  * Textual summary of an address-to-address route: total duration and the
  * ordered list of lines/stops to take, with interchange legs shown as
- * "Changement à X" rather than a bogus line name.
+ * "Changement à X" rather than a bogus line name. Each ride leg shows the
+ * line's colored badge (see `LineBadge`) instead of plain "Ligne X" text.
  */
 function RouteInfoPanel({data, legs, duration}: Props) {
     const lineById = useMemo(() => new Map(data.lines.map(l => [l.id, l])), [data]);
@@ -22,13 +24,22 @@ function RouteInfoPanel({data, legs, duration}: Props) {
         <div className="route-info-panel">
             <p>Durée totale : {formatDuration(duration)}</p>
             <ol>
-                {legs.map((leg, index) => (
-                    <li key={index}>
-                        {leg.isTransfer
-                            ? `Changement à ${stationById.get(leg.toStopId)?.name} (${formatDuration(leg.duration)})`
-                            : `Ligne ${lineById.get(leg.routeId)?.shortName ?? leg.routeId} : ${stationById.get(leg.fromStopId)?.name} → ${stationById.get(leg.toStopId)?.name} (${formatDuration(leg.duration)})`}
-                    </li>
-                ))}
+                {legs.map((leg, index) => {
+                    const line = lineById.get(leg.routeId);
+
+                    return (
+                        <li key={index}>
+                            {leg.isTransfer ? (
+                                `Changement à ${stationById.get(leg.toStopId)?.name} (${formatDuration(leg.duration)})`
+                            ) : (
+                                <>
+                                    {line ? <LineBadge line={line} /> : leg.routeId}
+                                    {' '}: {stationById.get(leg.fromStopId)?.name} → {stationById.get(leg.toStopId)?.name} ({formatDuration(leg.duration)})
+                                </>
+                            )}
+                        </li>
+                    );
+                })}
             </ol>
         </div>
     );

@@ -14,16 +14,17 @@ const data = {
 } as GtfsData;
 
 describe('RouteInfoPanel', () => {
-    it('shows the total duration and each leg by line short name, stop names and its own duration', () => {
+    it('shows the total duration and each leg by line badge, stop names and its own duration', () => {
         render(<RouteInfoPanel data={data} duration={300} legs={[
             {routeId: 'L1', fromStopId: 'A', toStopId: 'B', stopIds: ['A', 'B'], duration: 300, isTransfer: false},
         ]} />);
 
         expect(screen.getByText('Durée totale : 5min')).toBeInTheDocument();
-        expect(screen.getByText('Ligne 1 : Station A → Station B (5min)')).toBeInTheDocument();
+        expect(screen.getByLabelText('Ligne 1')).toBeInTheDocument();
+        expect(screen.getByText(/Station A → Station B \(5min\)/)).toBeInTheDocument();
     });
 
-    it('shows an interchange leg as "Changement à" instead of a line name, with its own duration', () => {
+    it('shows an interchange leg as "Changement à" instead of a line badge, with its own duration', () => {
         render(<RouteInfoPanel data={data} duration={300} legs={[
             {routeId: 'TRANSFER', fromStopId: 'A', toStopId: 'B', stopIds: ['A', 'B'], duration: 60, isTransfer: true},
         ]} />);
