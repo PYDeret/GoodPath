@@ -21,6 +21,15 @@ const trips = [
     {trip_id: 'T2', route_id: 'R1', shape_id: 'S1'},
 ];
 
+const calendar = [
+    {service_id: 'S1', monday: '1', tuesday: '1', wednesday: '1', thursday: '1', friday: '1', saturday: '0', sunday: '0'},
+];
+
+const tripsWithService = [
+    {trip_id: 'T1', route_id: 'R1', shape_id: 'S1', service_id: 'S1'},
+    {trip_id: 'T2', route_id: 'R1', shape_id: 'S1', service_id: 'S1'},
+];
+
 const stopTimes = [
     {trip_id: 'T1', stop_id: 'A', stop_sequence: '1', arrival_time: '10:00:00', departure_time: '10:00:00'},
     {trip_id: 'T1', stop_id: 'B', stop_sequence: '2', arrival_time: '10:05:00', departure_time: '10:05:00'},
@@ -33,7 +42,10 @@ describe('buildData', () => {
         const data = buildData(routes, [], [], [], []);
 
         expect(data.lines).toEqual([
-            {id: 'R1', shortName: '1', longName: 'Line 1', color: 'FFFFFF', textColor: '000000', type: 1},
+            {id: 'R1', shortName: '1', longName: 'Line 1', color: 'FFFFFF', textColor: '000000', type: 1, frequencies: {
+                weekday: {peak: 20, offpeak: 20, night: 20},
+                weekend: {peak: 20, offpeak: 20, night: 20},
+            }},
         ]);
     });
 
@@ -63,6 +75,22 @@ describe('buildData', () => {
         const data = buildData([], [], [], stopTimes, trips);
 
         expect(data.graph.A[0].duration).toBe(180);
+    });
+
+    it('attaches computed frequencies to each line', () => {
+        const stopTimesWithMorningTrips = [
+            {trip_id: 'T1', stop_id: 'A', stop_sequence: '1', arrival_time: '08:00:00', departure_time: '08:00:00'},
+            {trip_id: 'T1', stop_id: 'B', stop_sequence: '2', arrival_time: '08:05:00', departure_time: '08:05:00'},
+            {trip_id: 'T2', stop_id: 'A', stop_sequence: '1', arrival_time: '08:30:00', departure_time: '08:30:00'},
+            {trip_id: 'T2', stop_id: 'B', stop_sequence: '2', arrival_time: '08:33:00', departure_time: '08:33:00'},
+        ];
+
+        const data = buildData(routes, [], [], stopTimesWithMorningTrips, tripsWithService, [], calendar);
+
+        expect(data.lines[0].frequencies).toEqual({
+            weekday: {peak: 120, offpeak: 20, night: 20},
+            weekend: {peak: 20, offpeak: 20, night: 20},
+        });
     });
 
     it('adds a bidirectional interchange edge for each transfer', () => {

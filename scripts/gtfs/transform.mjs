@@ -1,4 +1,5 @@
 import {parseGtfsTime} from "./time.mjs";
+import {computeLineFrequencies} from "./frequencies.mjs";
 
 const groupBy = (records, key) => records.reduce((acc, record) => {
     acc[record[key]] ??= [];
@@ -23,10 +24,10 @@ const addOrUpdateEdge = (graph, from, to, duration, routeId) => {
 
 /**
  * Turns the filtered GTFS records (routes, shapes, stops, stop_times, trips,
- * transfers) into the app's `gtfs.json` shape: lines, shapes grouped and
- * ordered by sequence, an adjacency-list `graph` of stop-to-stop travel
- * times (ride edges from stop_times plus walking interchange edges from
- * transfers), and stations.
+ * transfers, calendar) into the app's `gtfs.json` shape: lines (each with a
+ * precomputed frequency table), shapes grouped and ordered by sequence, an
+ * adjacency-list `graph` of stop-to-stop travel times (ride edges from
+ * stop_times plus walking interchange edges from transfers), and stations.
  */
 export const buildData = (
     routes,
@@ -34,7 +35,8 @@ export const buildData = (
     stops,
     stopTimes,
     trips,
-    transfers = []
+    transfers = [],
+    calendar = []
 ) => {
     const data = {
         graph: {},
@@ -42,6 +44,15 @@ export const buildData = (
         shapes: [],
         lines: [],
     };
+
+    const tripRouteById = Object.fromEntries(trips.map(trip => [trip.trip_id, trip.route_id]));
+
+    const stopTimesByTrip = groupBy(stopTimes, 'trip_id');
+    Object.values(stopTimesByTrip).forEach(points =>
+        points.sort((a, b) => parseInt(a.stop_sequence) - parseInt(b.stop_sequence))
+    );
+
+    const frequenciesByRoute = computeLineFrequencies(routes, trips, calendar, stopTimesByTrip);
 
     routes.forEach(route => {
         data.lines.push({
@@ -51,6 +62,7 @@ export const buildData = (
             color: route.route_color,
             textColor: route.route_text_color,
             type: parseInt(route.route_type),
+            frequencies: frequenciesByRoute.get(route.route_id),
         });
     });
 
@@ -67,13 +79,6 @@ export const buildData = (
 
     Object.values(data.shapes).forEach(points =>
         points.sort((a, b) => a.shapeSequence - b.shapeSequence)
-    );
-
-    const tripRouteById = Object.fromEntries(trips.map(trip => [trip.trip_id, trip.route_id]));
-
-    const stopTimesByTrip = groupBy(stopTimes, 'trip_id');
-    Object.values(stopTimesByTrip).forEach(points =>
-        points.sort((a, b) => parseInt(a.stop_sequence) - parseInt(b.stop_sequence))
     );
 
     Object.entries(stopTimesByTrip).forEach(([tripId, points]) => {
