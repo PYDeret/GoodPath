@@ -19,5 +19,6 @@ export const isKeptTransfer = (record, stopIdSet) => {
     if (record.transfer_type === '3') {
         return null;
     }
+
     return stopIdSet.has(record.from_stop_id) && stopIdSet.has(record.to_stop_id) ? record : null;
 }

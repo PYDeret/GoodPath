@@ -19,6 +19,7 @@ export function useAddressRoute(data: GtfsData | undefined, fromAddress: string,
         if (!data || !path) {
             return [];
         }
+
         return buildPathLegs(data.graph, path);
     }, [data, path]);
 

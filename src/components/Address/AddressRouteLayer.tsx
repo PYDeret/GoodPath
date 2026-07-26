@@ -25,7 +25,8 @@ function AddressRouteLayer({data, legs}: Props) {
         const positions = leg.stopIds
             .map(stopId => stationById.get(stopId))
             .filter(station => station !== undefined)
-            .map(station => [station.stopLat, station.stopLon] as [number, number]);
+            .map(station => [station.stopLat, station.stopLon] as [number, number])
+        ;
 
         return (
             <Polyline
