@@ -5,17 +5,37 @@ import {buildPathLegs} from "../../domain/gtfs/pathLegs.ts";
 import type {GtfsData} from "../../types/gtfs/gtfsData.ts";
 
 /**
- * End-to-end address routing: geocodes `fromAddress`/`toAddress` to their
- * nearest stations, computes the shortest schedule-aware path between them
- * for a departure at `departureDate` (defaults to now), and groups it into
- * per-line legs. `isLoading` covers both geocoding requests.
+ * End-to-end address routing: resolves `fromAddress`/`toAddress` to their
+ * nearest stations (geocoding via BAN), unless a `fromStationId`/
+ * `toStationId` is given for a field — in which case that station is
+ * looked up directly from `data.stations`, skipping BAN entirely for that
+ * field (the corresponding address is passed to `useGeocodedStation` as an
+ * empty string, which its own `enabled` check already treats as
+ * disabled). Computes the shortest schedule-aware path between the two
+ * resolved stations for a departure at `departureDate` (defaults to now),
+ * and groups it into per-line legs. `isLoading` covers only the geocoding
+ * requests actually made — a direct station id never triggers a fetch.
  */
-export function useAddressRoute(data: GtfsData | undefined, fromAddress: string, toAddress: string, departureDate?: Date) {
-    const fromStation = useGeocodedStation(data?.stations, fromAddress);
-    const toStation = useGeocodedStation(data?.stations, toAddress);
+export function useAddressRoute(
+    data: GtfsData | undefined,
+    fromAddress: string,
+    toAddress: string,
+    departureDate?: Date,
+    fromStationId?: string,
+    toStationId?: string
+) {
+    const fromGeocoded = useGeocodedStation(data?.stations, fromStationId ? '' : fromAddress);
+    const toGeocoded = useGeocodedStation(data?.stations, toStationId ? '' : toAddress);
+
+    const fromStation = fromStationId
+        ? data?.stations.find(station => station.id === fromStationId)
+        : fromGeocoded.data;
+    const toStation = toStationId
+        ? data?.stations.find(station => station.id === toStationId)
+        : toGeocoded.data;
 
     const {path, duration, arrivals, patternIds} = useShortestPath(
-        data?.graph, fromStation.data?.id, toStation.data?.id, data?.lines, {departureDate}
+        data?.graph, fromStation?.id, toStation?.id, data?.lines, {departureDate}
     );
 
     const legs = useMemo(() => {
@@ -26,11 +46,11 @@ export function useAddressRoute(data: GtfsData | undefined, fromAddress: string,
     }, [data, path, arrivals, patternIds]);
 
     return {
-        fromStation: fromStation.data,
-        toStation: toStation.data,
+        fromStation,
+        toStation,
         path,
         duration,
         legs,
-        isLoading: fromStation.isFetching || toStation.isFetching,
+        isLoading: (!fromStationId && fromGeocoded.isFetching) || (!toStationId && toGeocoded.isFetching),
     };
 }

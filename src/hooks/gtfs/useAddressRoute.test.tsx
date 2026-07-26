@@ -51,4 +51,18 @@ describe('useAddressRoute', () => {
         expect(result.current.legs).toEqual([]);
         expect(result.current.isLoading).toBe(true);
     });
+
+    it('resolves fromStation directly from data.stations when fromStationId is given, without geocoding that field', async () => {
+        vi.mocked(useGeocodedStation).mockImplementation((_, address) => ({
+            data: address === 'to' ? data.stations[1] : undefined,
+            isFetching: false,
+        }) as ReturnType<typeof useGeocodedStation>);
+
+        const {result} = renderHook(() => useAddressRoute(data, 'ignored typed text', 'to', departureDate, 'A'), {wrapper});
+
+        await waitFor(() => expect(result.current.duration).toBe(300 + 300));
+        expect(result.current.fromStation).toEqual(data.stations[0]);
+        // the "from" field's geocoding call used an empty address, since a direct station id was given
+        expect(useGeocodedStation).toHaveBeenCalledWith(data.stations, '');
+    });
 });
