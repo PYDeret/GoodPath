@@ -11,7 +11,6 @@ const wrapper = ({children}: PropsWithChildren) => <>{children}</>;
 
 const data: GtfsData = {
     graph: {A: [{to: 'B', duration: 300, routeId: 'L1', patternId: 'L1'}]},
-    shapes: {},
     stations: [
         {id: 'A', name: 'Station A', stopLat: 48.0, stopLon: 2.0, zoneId: '1'},
         {id: 'B', name: 'Station B', stopLat: 48.1, stopLon: 2.1, zoneId: '1'},
