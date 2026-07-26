@@ -34,7 +34,7 @@ function RouteResultSheet({visible, children}: Props) {
             >
                 ▲▼
             </button>
-            <div data-testid="route-result-sheet-content" className={isExpanded ? 'block' : 'hidden'}>
+            <div data-testid="route-result-sheet-content" className={`${isExpanded ? 'block' : 'hidden'} md:block`}>
                 {children}
             </div>
         </div>

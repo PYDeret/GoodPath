@@ -29,4 +29,14 @@ describe('RouteResultSheet', () => {
         await userEvent.click(screen.getByRole('button', {name: 'Basculer le détail'}));
         expect(contentWrapper).toHaveClass('block');
     });
+
+    it('always includes md:block on the content wrapper so desktop shows content regardless of collapse state', async () => {
+        render(<RouteResultSheet visible={true}>route content</RouteResultSheet>);
+
+        const contentWrapper = screen.getByText('route content').closest('[data-testid="route-result-sheet-content"]');
+        expect(contentWrapper).toHaveClass('md:block');
+
+        await userEvent.click(screen.getByRole('button', {name: 'Basculer le détail'}));
+        expect(contentWrapper).toHaveClass('md:block');
+    });
 });
