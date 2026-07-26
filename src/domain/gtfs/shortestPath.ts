@@ -38,10 +38,19 @@ const patternIdOf = (state: string): string | null => {
  * the very first boarding, right after a `TRANSFER_ROUTE_ID` walking edge,
  * or switching to a *different pattern of the same line* — pays an
  * estimated wait based on that line's frequency at the simulated clock time
- * (`startTimeSeconds` plus cumulative elapsed time so far). Returns
- * cumulative elapsed seconds (not clock time) per state, plus each state's
- * predecessor state (feed to `buildPath`). `constraints` excludes stations,
- * lines (routeId) or specific `from>to` edges from the traversal entirely.
+ * (`startTimeSeconds` plus cumulative elapsed time so far). While mid-ride
+ * (already boarded some pattern), switching to a *different pattern of that
+ * same route id* is not merely costly, it's forbidden entirely: only an
+ * actual `TRANSFER_ROUTE_ID` edge (or the search's start) may change which
+ * pattern of a given line is "currently boarded" — this prevents the search
+ * from assembling a composite of two different real trips' fastest
+ * sub-segments into a ride no single physical train provides. Switching to
+ * a genuinely different line (different `routeId`) at a shared stop remains
+ * allowed without a transfer, since that's a real, valid line change.
+ * Returns cumulative elapsed seconds (not clock time) per state, plus each
+ * state's predecessor state (feed to `buildPath`). `constraints` excludes
+ * stations, lines (routeId) or specific `from>to` edges from the traversal
+ * entirely.
  */
 export const computeShortestPaths = (
     graph: TransportGraph,
@@ -55,6 +64,7 @@ export const computeShortestPaths = (
     const previous = new Map<string, string>();
     const visited = new Set<string>();
     const queue = new Set<string>([start]);
+    const routeIdByPattern = new Map<string, string>();
 
     while (queue.size > 0) {
         const current = [...queue].reduce((closest, state) =>
@@ -67,8 +77,13 @@ export const computeShortestPaths = (
         const currentStopId = stopIdOf(current);
         const currentPatternId = patternIdOf(current);
         const currentDuration = durations.get(current)!;
+        const currentRouteId = currentPatternId ? routeIdByPattern.get(currentPatternId) : undefined;
 
         for (const edge of graph[currentStopId] ?? []) {
+            if (!routeIdByPattern.has(edge.patternId)) {
+                routeIdByPattern.set(edge.patternId, edge.routeId);
+            }
+
             if (constraints.forbiddenStations?.has(edge.to)) {
                 continue;
             }
@@ -81,6 +96,12 @@ export const computeShortestPaths = (
 
             const isTransfer = edge.routeId === TRANSFER_ROUTE_ID;
             const isContinuing = !isTransfer && edge.patternId === currentPatternId;
+            const canBoardFreely = currentPatternId === null || currentPatternId === TRANSFER_ROUTE_ID;
+
+            if (!isTransfer && !isContinuing && !canBoardFreely && edge.routeId === currentRouteId) {
+                continue;
+            }
+
             const nextPatternId = edge.patternId;
             const nextState = stateKey(edge.to, nextPatternId);
 

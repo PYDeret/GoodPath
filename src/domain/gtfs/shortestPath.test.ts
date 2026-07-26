@@ -68,18 +68,45 @@ describe('computeShortestPaths', () => {
         expect(durations.get(stateKey('D', 'L2'))).toBe(300 + 10 + 300 + 20);
     });
 
-    it('charges a fresh boarding wait when the pattern changes even though the route id stays the same', () => {
-        // Same line L1, but B->C is a different physical pattern than A->B
-        // (e.g. a different train continuing the same line after a same-platform reboarding).
-        const patternChangeGraph: TransportGraph = {
+    it('forbids reaching a stop via a different pattern of the same route id without a transfer', () => {
+        // Same line L1, but B->C is a different physical pattern than A->B, with no
+        // TRANSFER edge in between — this is the "phantom reboarding" this fix forbids.
+        const noTransferGraph: TransportGraph = {
             A: [{to: 'B', duration: 10, routeId: 'L1', patternId: 'P1'}],
-            B: [{to: 'C', duration: 5, routeId: 'L1', patternId: 'P2'}],
+            B: [
+                {to: 'C', duration: 5, routeId: 'L1', patternId: 'P1'},
+                {to: 'D', duration: 1, routeId: 'L1', patternId: 'P2'},
+            ],
         };
 
-        const {durations} = computeShortestPaths(patternChangeGraph, 'A', PEAK_START, scheduleWith(L1));
+        const {durations} = computeShortestPaths(noTransferGraph, 'A', PEAK_START, scheduleWith(L1));
 
-        // board P1 (wait 300) + 10s ride + board P2 despite same routeId (wait 300) + 5s ride
-        expect(durations.get(stateKey('C', 'P2'))).toBe(300 + 10 + 300 + 5);
+        // D is only reachable via the P2 edge, which requires switching patterns
+        // mid-ride on the same route id L1 without a transfer -> forbidden entirely.
+        expect(durations.has(stateKey('D', 'P2'))).toBe(false);
+        // Continuing on the same pattern P1 must still work.
+        expect(durations.has(stateKey('C', 'P1'))).toBe(true);
+    });
+
+    it('still allows boarding a different pattern of the same route id immediately after a transfer edge', () => {
+        const graphWithTransfer: TransportGraph = {
+            A: [{to: 'B', duration: 10, routeId: 'L1', patternId: 'P1'}],
+            B: [{to: 'C', duration: 60, routeId: 'TRANSFER', patternId: 'TRANSFER'}],
+            C: [{to: 'D', duration: 5, routeId: 'L1', patternId: 'P2'}],
+        };
+
+        const {durations} = computeShortestPaths(graphWithTransfer, 'A', PEAK_START, scheduleWith(L1));
+
+        expect(durations.has(stateKey('D', 'P2'))).toBe(true);
+    });
+
+    it('still allows switching to a genuinely different line at a shared stop without a transfer edge', () => {
+        // graph: A->B on L1 (pattern L1), B->D on L2 (pattern L2) with no TRANSFER
+        // edge — a real line change at a stop shared by two different lines, which
+        // must remain allowed (only same-route pattern switches are forbidden).
+        const {durations} = computeShortestPaths(graph, 'A', PEAK_START, scheduleWith(L1, L2));
+
+        expect(durations.has(stateKey('D', 'L2'))).toBe(true);
     });
 
     it('uses the simulated clock (start + elapsed) to pick the bucket at boarding time', () => {
