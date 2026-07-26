@@ -103,4 +103,33 @@ describe('AddressInput', () => {
         expect(onChange).toHaveBeenCalledWith("Saint-Martin d'Étampes");
         expect(onSelectStation).toHaveBeenCalledWith(etampesStation);
     });
+
+    it('merges same-named stations into one suggestion with the union of their line badges', async () => {
+        vi.mocked(useAddressSuggestions).mockReturnValue({data: []} as unknown as ReturnType<typeof useAddressSuggestions>);
+        const lineTer: Line = {...lineC, id: 'L2', shortName: 'TER'};
+        const stationA: Station = {id: 'A', name: 'Étampes', stopLat: 0, stopLon: 0, zoneId: '1'};
+        const stationB: Station = {id: 'B', name: 'Étampes', stopLat: 0, stopLon: 0, zoneId: '1'};
+        const onSelectStation = vi.fn();
+
+        render(
+            <AddressInput
+                placeholder="Adresse de départ"
+                value="etampes"
+                onChange={vi.fn()}
+                stations={[stationA, stationB]}
+                linesByStation={new Map([['A', [lineC]], ['B', [lineC, lineTer]]])}
+                onSelectStation={onSelectStation}
+            />
+        );
+
+        await userEvent.click(screen.getByPlaceholderText('Adresse de départ'));
+
+        expect(screen.getAllByText(/Étampes/)).toHaveLength(1);
+        expect(screen.getByLabelText('Ligne C')).toBeInTheDocument();
+        expect(screen.getByLabelText('Ligne TER')).toBeInTheDocument();
+
+        await userEvent.click(screen.getByText(/Étampes/));
+
+        expect(onSelectStation).toHaveBeenCalledWith(stationB);
+    });
 });

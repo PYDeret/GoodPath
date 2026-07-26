@@ -1,6 +1,7 @@
 import {useEffect, useMemo, useRef, useState} from "react";
 import {useAddressSuggestions} from "../../hooks/geo/useAddressSuggestions.ts";
 import {searchStations} from "../../domain/gtfs/searchStations.ts";
+import {mergeDuplicateStations} from "../../domain/gtfs/mergeDuplicateStations.ts";
 import LineBadge from "./LineBadge.tsx";
 import type {Station} from "../../types/gtfs/gtfsStation.ts";
 import type {Line} from "../../types/gtfs/gtfsLine.ts";
@@ -16,28 +17,39 @@ type Props = {
 
 const MAX_STATION_SUGGESTIONS = 3;
 const MAX_TOTAL_SUGGESTIONS = 6;
+// Generous: same-named duplicates (different GTFS stop-place granularities
+// for one physical station) collapse into a single suggestion after
+// merging, so we must search past MAX_STATION_SUGGESTIONS raw matches to
+// still surface up to that many distinct station names.
+const RAW_STATION_CANDIDATES = 15;
 
 /**
  * Text input with a merged suggestion dropdown: up to 3 matching GTFS
- * stations (each with its serving lines' badges), ranked ahead of BAN
- * address suggestions which fill the remaining slots up to 6 total.
- * Suggestions open on focus/typing and close on selection, Escape, or a
- * click outside the component. Clicking a station suggestion calls both
- * `onChange` (fills the field with its name) and `onSelectStation`
- * (signals a confirmed direct station pick, skipping BAN geocoding for
- * this field upstream); clicking an address suggestion only calls
- * `onChange`, as before. `stations`/`linesByStation`/`onSelectStation`
- * are optional — omitting them keeps the original address-only behavior.
+ * stations (each with its serving lines' badges, deduplicated by station
+ * name so a physical station split across several GTFS records shows as
+ * one entry), ranked ahead of BAN address suggestions which fill the
+ * remaining slots up to 6 total. Suggestions open on focus/typing and
+ * close on selection, Escape, or a click outside the component. Clicking
+ * a station suggestion calls both `onChange` (fills the field with its
+ * name) and `onSelectStation` (signals a confirmed direct station pick,
+ * skipping BAN geocoding for this field upstream) with the underlying
+ * `Station` of the best-connected duplicate; clicking an address
+ * suggestion only calls `onChange`, as before. `stations`/
+ * `linesByStation`/`onSelectStation` are optional — omitting them keeps
+ * the original address-only behavior.
  */
 function AddressInput({placeholder, value, onChange, stations, linesByStation, onSelectStation}: Props) {
     const [isOpen, setIsOpen] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
     const {data: addressSuggestions} = useAddressSuggestions(value);
 
-    const stationSuggestions = useMemo(
-        () => stations ? searchStations(stations, value, MAX_STATION_SUGGESTIONS) : [],
-        [stations, value]
-    );
+    const stationSuggestions = useMemo(() => {
+        if (!stations) {
+            return [];
+        }
+        const matches = searchStations(stations, value, RAW_STATION_CANDIDATES);
+        return mergeDuplicateStations(matches, linesByStation ?? new Map()).slice(0, MAX_STATION_SUGGESTIONS);
+    }, [stations, value, linesByStation]);
 
     const remainingSlots = Math.max(0, MAX_TOTAL_SUGGESTIONS - stationSuggestions.length);
     const addressSuggestionsToShow = (addressSuggestions ?? []).slice(0, remainingSlots);
@@ -57,9 +69,12 @@ function AddressInput({placeholder, value, onChange, stations, linesByStation, o
         setIsOpen(false);
     };
 
-    const handleSelectStation = (station: Station) => {
-        onChange(station.name);
-        onSelectStation?.(station);
+    const handleSelectStation = (id: string, name: string) => {
+        onChange(name);
+        const station = stations?.find(s => s.id === id);
+        if (station) {
+            onSelectStation?.(station);
+        }
         setIsOpen(false);
     };
 
@@ -86,15 +101,15 @@ function AddressInput({placeholder, value, onChange, stations, linesByStation, o
             />
             {isOpen && hasSuggestions && (
                 <ul className="address-input-suggestions">
-                    {stationSuggestions.map(station => (
+                    {stationSuggestions.map(suggestion => (
                         <li
-                            key={station.id}
+                            key={suggestion.id}
                             className="address-input-suggestion flex flex-col gap-1"
-                            onClick={() => handleSelectStation(station)}
+                            onClick={() => handleSelectStation(suggestion.id, suggestion.name)}
                         >
-                            <span>🚉 {station.name}</span>
+                            <span>🚉 {suggestion.name}</span>
                             <span className="flex gap-1">
-                                {(linesByStation?.get(station.id) ?? []).map(line => (
+                                {suggestion.lines.map(line => (
                                     <LineBadge key={line.id} line={line} />
                                 ))}
                             </span>
