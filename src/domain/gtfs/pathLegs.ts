@@ -10,14 +10,19 @@ export type PathLeg = {
     isTransfer: boolean,
 }
 
-const findEdge = (graph: TransportGraph, from: string, to: string, patternId: string | null) => {
+const findEdge = (graph: TransportGraph, from: string, to: string, patternId: string | null, patternIdsProvided: boolean) => {
     const edges = graph[from] ?? [];
 
     if (patternId === TRANSFER_ROUTE_ID) {
         return edges.find(edge => edge.to === to && edge.routeId === TRANSFER_ROUTE_ID);
     }
 
-    return edges.find(edge => edge.to === to && edge.patternId === patternId);
+    // If patternIds were explicitly provided, match by pattern; otherwise use old behavior
+    if (patternIdsProvided) {
+        return edges.find(edge => edge.to === to && edge.patternId === patternId);
+    }
+
+    return edges.find(edge => edge.to === to);
 }
 
 /**
@@ -32,13 +37,15 @@ const findEdge = (graph: TransportGraph, from: string, to: string, patternId: st
  * transferRouteId.ts) are flagged via `isTransfer` so consumers don't need
  * to know the sentinel routeId.
  */
-export const buildPathLegs = (graph: TransportGraph, path: string[], arrivals: number[], patternIds: (string | null)[]): PathLeg[] => {
+export const buildPathLegs = (graph: TransportGraph, path: string[], arrivals: number[], patternIds?: (string | null)[]): PathLeg[] => {
+    const patterns = patternIds ?? Array(path.length).fill(null);
+    const patternIdsProvided = patternIds !== undefined;
     const legs: PathLeg[] = [];
 
     for (let i = 0; i < path.length - 1; i++) {
         const from = path[i];
         const to = path[i + 1];
-        const routeId = findEdge(graph, from, to, patternIds[i + 1])?.routeId;
+        const routeId = findEdge(graph, from, to, patterns[i + 1], patternIdsProvided)?.routeId;
 
         if (routeId === undefined) {
             continue;
