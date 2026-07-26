@@ -1,7 +1,4 @@
-const parseGtfsTime = (time) => {
-    const [hours, minutes, seconds] = time.split(':').map(Number);
-    return hours * 3600 + minutes * 60 + seconds;
-}
+import {parseGtfsTime} from "./time.mjs";
 
 const groupBy = (records, key) => records.reduce((acc, record) => {
     acc[record[key]] ??= [];
