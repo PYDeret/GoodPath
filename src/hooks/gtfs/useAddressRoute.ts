@@ -14,7 +14,7 @@ export function useAddressRoute(data: GtfsData | undefined, fromAddress: string,
     const fromStation = useGeocodedStation(data?.stations, fromAddress);
     const toStation = useGeocodedStation(data?.stations, toAddress);
 
-    const {path, duration, arrivals} = useShortestPath(
+    const {path, duration, arrivals, patternIds} = useShortestPath(
         data?.graph, fromStation.data?.id, toStation.data?.id, data?.lines, {departureDate}
     );
 
@@ -22,8 +22,8 @@ export function useAddressRoute(data: GtfsData | undefined, fromAddress: string,
         if (!data || !path) {
             return [];
         }
-        return buildPathLegs(data.graph, path, arrivals);
-    }, [data, path, arrivals]);
+        return buildPathLegs(data.graph, path, arrivals, patternIds);
+    }, [data, path, arrivals, patternIds]);
 
     return {
         fromStation: fromStation.data,

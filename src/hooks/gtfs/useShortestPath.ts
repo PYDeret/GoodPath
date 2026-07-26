@@ -8,7 +8,7 @@ import {dayTypeForDate} from "../../domain/gtfs/dayType.ts";
 // Stable reference so an omitted `requiredStations` doesn't invalidate the
 // useMemo below on every render (a new `[]` literal would break the cache).
 const NO_REQUIRED_STATIONS: string[] = [];
-const NO_RESULT = {path: null, duration: null, arrivals: []};
+const NO_RESULT = {path: null, duration: null, arrivals: [], patternIds: []};
 
 export type UseShortestPathOptions = {
     requiredStations?: string[],
