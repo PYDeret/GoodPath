@@ -14,7 +14,7 @@ type Props = {
  */
 function PathLayer({fromStopId, toStopId}: Props) {
     const {data} = useGtfsData();
-    const {path} = useShortestPath(data?.graph, fromStopId, toStopId);
+    const {path} = useShortestPath(data?.graph, fromStopId, toStopId, data?.lines);
 
     if (!data || !path) {
         return null;
