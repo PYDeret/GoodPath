@@ -127,4 +127,21 @@ describe('buildData', () => {
         const [edgeToB, edgeToC] = data.graph.A;
         expect(edgeToB.patternId).not.toBe(edgeToC.patternId);
     });
+
+    it('includes dwell time at an intermediate stop when a single trip rides through it', () => {
+        const tripsSingle = [{trip_id: 'T1', route_id: 'R1', shape_id: 'S1'}];
+        const stopTimesWithDwell = [
+            {trip_id: 'T1', stop_id: 'A', stop_sequence: '1', arrival_time: '10:00:00', departure_time: '10:00:00'},
+            {trip_id: 'T1', stop_id: 'B', stop_sequence: '2', arrival_time: '10:05:00', departure_time: '10:05:40'},
+            {trip_id: 'T1', stop_id: 'C', stop_sequence: '3', arrival_time: '10:10:00', departure_time: '10:10:00'},
+        ];
+
+        const data = buildData([], [], [], stopTimesWithDwell, tripsSingle);
+
+        // A->B: departure(B) - departure(A) = 10:05:40 - 10:00:00 = 340s
+        // (not arrival(B) - departure(A) = 300s, which would drop the 40s dwell at B).
+        expect(data.graph.A[0].duration).toBe(340);
+        // B->C: departure(C) - departure(B) = 10:10:00 - 10:05:40 = 260s.
+        expect(data.graph.B[0].duration).toBe(260);
+    });
 });

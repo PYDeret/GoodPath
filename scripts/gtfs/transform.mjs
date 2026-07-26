@@ -89,7 +89,7 @@ export const buildData = (
         for (let i = 0; i < points.length - 1; i++) {
             const from = points[i].stop_id;
             const to = points[i + 1].stop_id;
-            const duration = parseGtfsTime(points[i + 1].arrival_time) - parseGtfsTime(points[i].departure_time);
+            const duration = parseGtfsTime(points[i + 1].departure_time) - parseGtfsTime(points[i].departure_time);
 
             addOrUpdateEdge(data.graph, from, to, duration, routeId, patternId);
         }
