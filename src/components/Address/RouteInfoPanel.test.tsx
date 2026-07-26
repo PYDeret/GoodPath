@@ -14,20 +14,20 @@ const data = {
 } as GtfsData;
 
 describe('RouteInfoPanel', () => {
-    it('shows the total duration and each leg by line short name and stop names', () => {
+    it('shows the total duration and each leg by line short name, stop names and its own duration', () => {
         render(<RouteInfoPanel data={data} duration={300} legs={[
-            {routeId: 'L1', fromStopId: 'A', toStopId: 'B', stopIds: ['A', 'B']},
+            {routeId: 'L1', fromStopId: 'A', toStopId: 'B', stopIds: ['A', 'B'], duration: 300},
         ]} />);
 
         expect(screen.getByText('Durée totale : 5min')).toBeInTheDocument();
-        expect(screen.getByText('Ligne 1 : Station A → Station B')).toBeInTheDocument();
+        expect(screen.getByText('Ligne 1 : Station A → Station B (5min)')).toBeInTheDocument();
     });
 
-    it('shows an interchange leg as "Changement à" instead of a line name', () => {
+    it('shows an interchange leg as "Changement à" instead of a line name, with its own duration', () => {
         render(<RouteInfoPanel data={data} duration={300} legs={[
-            {routeId: 'TRANSFER', fromStopId: 'A', toStopId: 'B', stopIds: ['A', 'B']},
+            {routeId: 'TRANSFER', fromStopId: 'A', toStopId: 'B', stopIds: ['A', 'B'], duration: 60},
         ]} />);
 
-        expect(screen.getByText('Changement à Station B')).toBeInTheDocument();
+        expect(screen.getByText('Changement à Station B (1min)')).toBeInTheDocument();
     });
 });
