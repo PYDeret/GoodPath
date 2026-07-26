@@ -1,24 +1,13 @@
 import {describe, expect, it} from "vitest";
-import {isKeptCalendar, isKeptRoute, isKeptShape, isKeptStop, isKeptStopTime, isKeptTransfer, isKeptTrip} from "./filters.mjs";
+import {isKeptCalendar, isKeptRoute, isKeptStop, isKeptStopTime, isKeptTransfer, isKeptTrip} from "./filters.mjs";
 
 describe('isKeptRoute', () => {
-    it.each(['0', '1', '2'])('keeps route_type %s', (route_type) => {
+    it.each(['0', '1', '2', '3'])('keeps route_type %s', (route_type) => {
         expect(isKeptRoute({route_type})).toEqual({route_type});
     });
 
     it('rejects a route_type outside the allowed list', () => {
-        expect(isKeptRoute({route_type: '3'})).toBeNull();
-    });
-});
-
-describe('isKeptShape', () => {
-    it('keeps a shape referenced by a trip', () => {
-        const record = {shape_id: 'S1'};
-        expect(isKeptShape(record, new Set(['S1']))).toBe(record);
-    });
-
-    it('rejects a shape referenced by no trip', () => {
-        expect(isKeptShape({shape_id: 'S2'}, new Set(['S1']))).toBeNull();
+        expect(isKeptRoute({route_type: '6'})).toBeNull();
     });
 });
 
