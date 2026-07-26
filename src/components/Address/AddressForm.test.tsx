@@ -41,7 +41,7 @@ describe('AddressForm', () => {
 
         await userEvent.type(screen.getByPlaceholderText('Adresse de départ'), '1 rue de Paris');
         await userEvent.type(screen.getByPlaceholderText("Adresse d'arrivée"), '2 rue de Lyon');
-        await userEvent.type(screen.getByLabelText('Heure de départ'), '2026-07-26T14:30');
+        await userEvent.type(screen.getByLabelText('Heure de départ'), '26/07/2026 14:30{enter}');
         await userEvent.click(screen.getByText('Itinéraire'));
 
         const [{departureDate}] = onSubmit.mock.calls[0];

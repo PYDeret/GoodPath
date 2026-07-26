@@ -1,8 +1,14 @@
 import {useState} from "react";
 import type {FormEvent} from "react";
+import DatePicker, {registerLocale} from "react-datepicker";
+import {fr} from "date-fns/locale/fr";
+import "react-datepicker/dist/react-datepicker.css";
+import "./datepicker.css";
 import AddressInput from "./AddressInput.tsx";
 import type {Station} from "../../types/gtfs/gtfsStation.ts";
 import type {Line} from "../../types/gtfs/gtfsLine.ts";
+
+registerLocale('fr', fr);
 
 export type AddressFormSubmitParams = {
     fromAddress: string,
@@ -35,7 +41,7 @@ type FieldErrors = {
 function AddressForm({onSubmit, stations, linesByStation}: Props) {
     const [fromAddress, setFromAddress] = useState('');
     const [toAddress, setToAddress] = useState('');
-    const [departureTime, setDepartureTime] = useState('');
+    const [departureDate, setDepartureDate] = useState<Date | null>(null);
     const [fromStationId, setFromStationId] = useState<string>();
     const [toStationId, setToStationId] = useState<string>();
     const [errors, setErrors] = useState<FieldErrors>({});
@@ -71,7 +77,7 @@ function AddressForm({onSubmit, stations, linesByStation}: Props) {
         onSubmit({
             fromAddress,
             toAddress,
-            departureDate: departureTime ? new Date(departureTime) : undefined,
+            departureDate: departureDate ?? undefined,
             fromStationId,
             toStationId,
         });
@@ -103,12 +109,19 @@ function AddressForm({onSubmit, stations, linesByStation}: Props) {
             </div>
             <label className="flex flex-col gap-1 text-sm text-[var(--text)]">
                 Heure de départ
-                <input
-                    type="datetime-local"
-                    value={departureTime}
-                    onChange={e => setDepartureTime(e.target.value)}
-                    className="rounded-lg border px-3 py-2 text-[var(--text-h)] outline-none transition-colors focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-border)]"
-                    style={{borderColor: 'var(--border)'}}
+                <DatePicker
+                    selected={departureDate}
+                    onChange={setDepartureDate}
+                    locale="fr"
+                    showTimeSelect
+                    timeFormat="HH:mm"
+                    timeIntervals={15}
+                    timeCaption="Heure"
+                    dateFormat="dd/MM/yyyy HH:mm"
+                    placeholderText="jj/mm/aaaa --:--"
+                    isClearable
+                    wrapperClassName="w-full"
+                    className="w-full rounded-lg border border-[var(--border)] px-3 py-2 text-[var(--text-h)] outline-none transition-colors focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-border)]"
                 />
             </label>
             <button
