@@ -28,7 +28,7 @@ describe('LinesLayer', () => {
                     S1: [{shapeLat: 48.0, shapeLon: 2.0, shapeSequence: 1}, {shapeLat: 48.1, shapeLon: 2.1, shapeSequence: 2}],
                 },
             },
-        } as ReturnType<typeof useGtfsData>);
+        } as unknown as ReturnType<typeof useGtfsData>);
 
         render(<LinesLayer />);
 

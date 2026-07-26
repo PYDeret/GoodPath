@@ -42,7 +42,7 @@ describe('AddressInput', () => {
     it('does not show a dropdown when there are no suggestions', () => {
         vi.mocked(useAddressSuggestions).mockReturnValue({
             data: [],
-        } as ReturnType<typeof useAddressSuggestions>);
+        } as unknown as ReturnType<typeof useAddressSuggestions>);
         render(<AddressInput placeholder="Adresse de départ" value="" onChange={vi.fn()} />);
 
         expect(screen.queryByRole('list')).not.toBeInTheDocument();

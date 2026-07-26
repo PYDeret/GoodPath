@@ -2,6 +2,7 @@ import {describe, expect, it, vi} from "vitest";
 import {render, screen} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type {CircleMarkerProps} from "react-leaflet";
+import type {MouseEventHandler} from "react";
 import StationsLayer from "./StationsLayer.tsx";
 import {useGtfsData} from "../../hooks/gtfs/useGtfsData.ts";
 
@@ -13,7 +14,7 @@ vi.mock("react-leaflet", () => ({
             data-testid="marker"
             data-center={(center as [number, number]).join(',')}
             data-color={pathOptions && 'color' in pathOptions ? pathOptions.color : 'default'}
-            onClick={eventHandlers?.click}
+            onClick={eventHandlers?.click as unknown as MouseEventHandler<HTMLButtonElement> | undefined}
         />
     ),
 }));
