@@ -16,6 +16,7 @@ export function useGeocodedStation(stations: Station[] | undefined, address: str
             if (!geocoded) {
                 return null;
             }
+
             return findNearestStation(stations!, geocoded.lat, geocoded.lon);
         },
         enabled: address.trim().length > 0 && !!stations,

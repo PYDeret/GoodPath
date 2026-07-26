@@ -24,8 +24,8 @@ const data = {
 describe('AddressRouteLayer', () => {
     it('draws one polyline per leg, colored by the GTFS line color', () => {
         render(<AddressRouteLayer data={data} legs={[
-            {routeId: 'L1', fromStopId: 'A', toStopId: 'B', stopIds: ['A', 'B'], duration: 300},
-            {routeId: 'L2', fromStopId: 'B', toStopId: 'C', stopIds: ['B', 'C'], duration: 240},
+            {routeId: 'L1', fromStopId: 'A', toStopId: 'B', stopIds: ['A', 'B'], duration: 300, isTransfer: false},
+            {routeId: 'L2', fromStopId: 'B', toStopId: 'C', stopIds: ['B', 'C'], duration: 240, isTransfer: false},
         ]} />);
 
         const polylines = screen.getAllByTestId('polyline');
@@ -37,7 +37,7 @@ describe('AddressRouteLayer', () => {
 
     it('draws an interchange leg as a dashed grey line', () => {
         render(<AddressRouteLayer data={data} legs={[
-            {routeId: 'TRANSFER', fromStopId: 'A', toStopId: 'B', stopIds: ['A', 'B'], duration: 60},
+            {routeId: 'TRANSFER', fromStopId: 'A', toStopId: 'B', stopIds: ['A', 'B'], duration: 60, isTransfer: true},
         ]} />);
 
         const polyline = screen.getByTestId('polyline');

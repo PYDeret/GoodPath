@@ -1,4 +1,5 @@
 import type {TransportGraph} from "../../types/gtfs/gtfsGraph.ts";
+import {TRANSFER_ROUTE_ID} from "./transferRouteId.ts";
 
 export type PathLeg = {
     routeId: string,
@@ -6,6 +7,7 @@ export type PathLeg = {
     toStopId: string,
     stopIds: string[],
     duration: number,
+    isTransfer: boolean,
 }
 
 /**
@@ -13,7 +15,9 @@ export type PathLeg = {
  * travelled on the same route, for display as "line X from A to B". Each
  * leg's `duration` is the sum of the per-edge elapsed time (`arrivals`,
  * parallel to `path`, as returned by `computeShortestPathWithWaypoints`),
- * so it includes any boarding wait charged on the leg's first edge.
+ * so it includes any boarding wait charged on the leg's first edge. Legs
+ * riding an interchange edge (see transferRouteId.ts) are flagged via
+ * `isTransfer` so consumers don't need to know the sentinel routeId.
  */
 export const buildPathLegs = (graph: TransportGraph, path: string[], arrivals: number[]): PathLeg[] => {
     const legs: PathLeg[] = [];
@@ -35,7 +39,7 @@ export const buildPathLegs = (graph: TransportGraph, path: string[], arrivals: n
             currentLeg.stopIds.push(to);
             currentLeg.duration += edgeDuration;
         } else {
-            legs.push({routeId, fromStopId: from, toStopId: to, stopIds: [from, to], duration: edgeDuration});
+            legs.push({routeId, fromStopId: from, toStopId: to, stopIds: [from, to], duration: edgeDuration, isTransfer: routeId === TRANSFER_ROUTE_ID});
         }
     }
 

@@ -39,7 +39,7 @@ describe('useAddressRoute', () => {
 
         await waitFor(() => expect(result.current.duration).toBe(300 + 300));
         expect(result.current.path).toEqual(['A', 'B']);
-        expect(result.current.legs).toEqual([{routeId: 'L1', fromStopId: 'A', toStopId: 'B', stopIds: ['A', 'B'], duration: 600}]);
+        expect(result.current.legs).toEqual([{routeId: 'L1', fromStopId: 'A', toStopId: 'B', stopIds: ['A', 'B'], duration: 600, isTransfer: false}]);
     });
 
     it('has no path while a station is unresolved', () => {

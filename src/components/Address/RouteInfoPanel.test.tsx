@@ -16,7 +16,7 @@ const data = {
 describe('RouteInfoPanel', () => {
     it('shows the total duration and each leg by line short name, stop names and its own duration', () => {
         render(<RouteInfoPanel data={data} duration={300} legs={[
-            {routeId: 'L1', fromStopId: 'A', toStopId: 'B', stopIds: ['A', 'B'], duration: 300},
+            {routeId: 'L1', fromStopId: 'A', toStopId: 'B', stopIds: ['A', 'B'], duration: 300, isTransfer: false},
         ]} />);
 
         expect(screen.getByText('Durée totale : 5min')).toBeInTheDocument();
@@ -25,7 +25,7 @@ describe('RouteInfoPanel', () => {
 
     it('shows an interchange leg as "Changement à" instead of a line name, with its own duration', () => {
         render(<RouteInfoPanel data={data} duration={300} legs={[
-            {routeId: 'TRANSFER', fromStopId: 'A', toStopId: 'B', stopIds: ['A', 'B'], duration: 60},
+            {routeId: 'TRANSFER', fromStopId: 'A', toStopId: 'B', stopIds: ['A', 'B'], duration: 60, isTransfer: true},
         ]} />);
 
         expect(screen.getByText('Changement à Station B (1min)')).toBeInTheDocument();
