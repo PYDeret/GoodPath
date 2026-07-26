@@ -12,7 +12,7 @@ const groupBy = (records, key) => records.reduce((acc, record) => {
 // Marks a graph edge as an interchange (walk between platforms/lines at the
 // same station complex) rather than a ride on a GTFS route.
 // Kept in sync with src/domain/gtfs/transferRouteId.ts.
-const TRANSFER_ROUTE_ID = 'TRANSFER';
+export const TRANSFER_ROUTE_ID = 'TRANSFER';
 
 const addOrUpdateEdge = (graph, from, to, duration, routeId) => {
     graph[from] ??= [];

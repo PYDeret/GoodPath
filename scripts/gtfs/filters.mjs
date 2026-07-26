@@ -7,25 +7,18 @@ export const isKeptRoute = (record) => {
     return KEPT_ROUTE_TYPES.includes(record.route_type) ? record : null
 }
 
-export const isKeptShape = (record, tripShapeIdSet) => {
-    return tripShapeIdSet.has(record.shape_id) ? record : null;
-}
+// Factory for the common "keep this record if record[field] is in idSet" shape.
+const keepIfIdIn = (field) => (record, idSet) => idSet.has(record[field]) ? record : null;
 
-export const isKeptStop = (record, stopTimeIdSet) => {
-    return stopTimeIdSet.has(record.stop_id) ? record : null;
-}
-
-export const isKeptStopTime = (record, tripIdSet) => {
-    return tripIdSet.has(record.trip_id) ? record : null;
-}
-
-export const isKeptTrip = (record, routeIdSet) => {
-    return routeIdSet.has(record.route_id) ? record : null
-}
+export const isKeptShape = keepIfIdIn('shape_id');
+export const isKeptStop = keepIfIdIn('stop_id');
+export const isKeptStopTime = keepIfIdIn('trip_id');
+export const isKeptTrip = keepIfIdIn('route_id');
 
 export const isKeptTransfer = (record, stopIdSet) => {
     if (record.transfer_type === '3') {
         return null;
     }
+
     return stopIdSet.has(record.from_stop_id) && stopIdSet.has(record.to_stop_id) ? record : null;
 }
