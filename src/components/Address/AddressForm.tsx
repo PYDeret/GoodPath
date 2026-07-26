@@ -1,30 +1,48 @@
 import {useState} from "react";
 import type {FormEvent} from "react";
 import AddressInput from "./AddressInput.tsx";
+import type {Station} from "../../types/gtfs/gtfsStation.ts";
+import type {Line} from "../../types/gtfs/gtfsLine.ts";
 
-type Props = {
-    onSubmit: (fromAddress: string, toAddress: string, departureDate?: Date) => void,
+export type AddressFormSubmitParams = {
+    fromAddress: string,
+    toAddress: string,
+    departureDate?: Date,
+    fromStationId?: string,
+    toStationId?: string,
 }
 
-/**
- * Departure/arrival address inputs plus an optional departure time. Calls
- * `onSubmit` with both raw address strings and the chosen `Date` (or
- * `undefined` if the time field is left empty, meaning "now") on submit;
- * geocoding and routing happen upstream.
- */
+type Props = {
+    onSubmit: (params: AddressFormSubmitParams) => void,
+    stations?: Station[],
+    linesByStation?: Map<string, Line[]>,
+}
+
 type FieldErrors = {
     from?: string,
     to?: string,
 }
 
-function AddressForm({onSubmit}: Props) {
+/**
+ * Departure/arrival address inputs plus an optional departure time. Calls
+ * `onSubmit` with the raw address strings, the chosen `Date` (or
+ * `undefined` if the time field is left empty, meaning "now"), and each
+ * field's confirmed station id if the user picked a station suggestion
+ * (see `AddressInput`) rather than typing/picking a free-text address —
+ * `undefined` if not, or if the field was edited again afterward.
+ * Geocoding and routing happen upstream.
+ */
+function AddressForm({onSubmit, stations, linesByStation}: Props) {
     const [fromAddress, setFromAddress] = useState('');
     const [toAddress, setToAddress] = useState('');
     const [departureTime, setDepartureTime] = useState('');
+    const [fromStationId, setFromStationId] = useState<string>();
+    const [toStationId, setToStationId] = useState<string>();
     const [errors, setErrors] = useState<FieldErrors>({});
 
     const handleFromChange = (value: string) => {
         setFromAddress(value);
+        setFromStationId(undefined);
         if (value.trim()) {
             setErrors(current => ({...current, from: undefined}));
         }
@@ -32,6 +50,7 @@ function AddressForm({onSubmit}: Props) {
 
     const handleToChange = (value: string) => {
         setToAddress(value);
+        setToStationId(undefined);
         if (value.trim()) {
             setErrors(current => ({...current, to: undefined}));
         }
@@ -49,7 +68,13 @@ function AddressForm({onSubmit}: Props) {
             return;
         }
 
-        onSubmit(fromAddress, toAddress, departureTime ? new Date(departureTime) : undefined);
+        onSubmit({
+            fromAddress,
+            toAddress,
+            departureDate: departureTime ? new Date(departureTime) : undefined,
+            fromStationId,
+            toStationId,
+        });
     };
 
     return (
@@ -59,6 +84,9 @@ function AddressForm({onSubmit}: Props) {
                     placeholder="Adresse de départ"
                     value={fromAddress}
                     onChange={handleFromChange}
+                    stations={stations}
+                    linesByStation={linesByStation}
+                    onSelectStation={station => setFromStationId(station.id)}
                 />
                 {errors.from && <p className="mt-1 text-sm text-red-600">{errors.from}</p>}
             </div>
@@ -67,6 +95,9 @@ function AddressForm({onSubmit}: Props) {
                     placeholder="Adresse d'arrivée"
                     value={toAddress}
                     onChange={handleToChange}
+                    stations={stations}
+                    linesByStation={linesByStation}
+                    onSelectStation={station => setToStationId(station.id)}
                 />
                 {errors.to && <p className="mt-1 text-sm text-red-600">{errors.to}</p>}
             </div>
