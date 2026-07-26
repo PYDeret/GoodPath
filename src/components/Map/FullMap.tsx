@@ -1,8 +1,6 @@
 import { MapContainer, TileLayer } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import {useMemo, useState} from "react";
-import StationsLayer from "../Stations/StationsLayer.tsx";
-import PathLayer from "../Path/PathLayer.tsx";
 import SearchPanel from "../Address/SearchPanel.tsx";
 import AddressRouteLayer from "../Address/AddressRouteLayer.tsx";
 import AddressRouteMarkers from "../Address/AddressRouteMarkers.tsx";
@@ -21,18 +19,14 @@ const STATUS_MESSAGES = {
 };
 
 /**
- * Root map view. Owns the departure/arrival station selection (click-based:
- * first click sets `fromStopId`, second sets `toStopId`, third resets) and
- * the address-based routing form. Renders the station, line, click-path and
- * address-route layers on top of the OSM tile layer. Layout is responsive:
+ * Root map view. Owns the address-based routing form and renders the
+ * computed route on top of the tile layer. Layout is responsive:
  * `SearchPanel` and `RouteResultSheet` present as a fixed sidebar/inline
  * panel on desktop and as a floating collapsible pill/bottom sheet on
  * mobile (see their own docs) — the map itself is a single instance that
  * simply fills the remaining space in both cases.
  */
 function FullMap() {
-    const [fromStopId, setFromStopId] = useState<string>();
-    const [toStopId, setToStopId] = useState<string>();
     const [fromAddress, setFromAddress] = useState('');
     const [toAddress, setToAddress] = useState('');
     const [departureDate, setDepartureDate] = useState<Date>();
@@ -54,15 +48,6 @@ function FullMap() {
         () => data ? linesByStation(data.graph, data.lines) : new Map<string, never[]>(),
         [data]
     );
-
-    const handleStationClick = (stopId: string) => {
-        if (!fromStopId || toStopId) {
-            setFromStopId(stopId);
-            setToStopId(undefined);
-        } else {
-            setToStopId(stopId);
-        }
-    };
 
     const hasResult = (!!data && routeStatus === 'found' && addressRoute.duration !== null) || (routeStatus !== 'idle' && routeStatus !== 'found');
 
@@ -99,8 +84,6 @@ function FullMap() {
                         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
                         url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
                     />
-                    <StationsLayer onStationClick={handleStationClick} fromStopId={fromStopId} toStopId={toStopId} />
-                    <PathLayer fromStopId={fromStopId} toStopId={toStopId} />
                     {data && routeStatus === 'found' && <AddressRouteLayer data={data} legs={addressRoute.legs} />}
                     <AddressRouteMarkers fromStation={addressRoute.fromStation ?? undefined} toStation={addressRoute.toStation ?? undefined} />
                 </MapContainer>
