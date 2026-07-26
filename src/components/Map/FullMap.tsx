@@ -60,7 +60,17 @@ function FullMap() {
 
     return (
         <div className="relative flex h-svh w-full">
-            <SearchPanel onSubmit={(from, to, date) => { setFromAddress(from); setToAddress(to); setDepartureDate(date); }} />
+            <div className="contents md:flex md:h-full md:w-96 md:flex-shrink-0 md:flex-col md:overflow-y-auto md:border-r md:p-4">
+                <SearchPanel onSubmit={(from, to, date) => { setFromAddress(from); setToAddress(to); setDepartureDate(date); }} />
+                <RouteResultSheet visible={hasResult}>
+                    {data && routeStatus === 'found' && addressRoute.duration !== null && (
+                        <RouteInfoPanel data={data} legs={addressRoute.legs} duration={addressRoute.duration} />
+                    )}
+                    {routeStatus !== 'idle' && routeStatus !== 'found' && (
+                        <p className="route-status">{STATUS_MESSAGES[routeStatus]}</p>
+                    )}
+                </RouteResultSheet>
+            </div>
             <div className="relative flex-1">
                 <MapContainer
                     center={[48.85, 2.35]}
@@ -77,14 +87,6 @@ function FullMap() {
                     {data && routeStatus === 'found' && <AddressRouteLayer data={data} legs={addressRoute.legs} />}
                 </MapContainer>
             </div>
-            <RouteResultSheet visible={hasResult}>
-                {data && routeStatus === 'found' && addressRoute.duration !== null && (
-                    <RouteInfoPanel data={data} legs={addressRoute.legs} duration={addressRoute.duration} />
-                )}
-                {routeStatus !== 'idle' && routeStatus !== 'found' && (
-                    <p className="route-status">{STATUS_MESSAGES[routeStatus]}</p>
-                )}
-            </RouteResultSheet>
         </div>
     )
 }

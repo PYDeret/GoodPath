@@ -24,7 +24,7 @@ function SearchPanel({onSubmit}: Props) {
     };
 
     return (
-        <div className="fixed top-4 inset-x-4 z-[1100] md:static md:inset-auto md:z-auto md:flex md:h-full md:w-96 md:flex-shrink-0 md:flex-col md:border-r md:p-4">
+        <div className="fixed top-4 inset-x-4 z-[1100] md:static md:inset-auto md:z-auto md:flex md:flex-col">
             <button
                 type="button"
                 onClick={() => setIsExpanded(true)}
