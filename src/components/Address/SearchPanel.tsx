@@ -1,8 +1,13 @@
 import {useState} from "react";
 import AddressForm from "./AddressForm.tsx";
+import type {AddressFormSubmitParams} from "./AddressForm.tsx";
+import type {Station} from "../../types/gtfs/gtfsStation.ts";
+import type {Line} from "../../types/gtfs/gtfsLine.ts";
 
 type Props = {
-    onSubmit: (fromAddress: string, toAddress: string, departureDate?: Date) => void,
+    onSubmit: (params: AddressFormSubmitParams) => void,
+    stations?: Station[],
+    linesByStation?: Map<string, Line[]>,
 }
 
 /**
@@ -17,11 +22,11 @@ type Props = {
  *   form on tap; submitting collapses it back to the pill so the map and
  *   the new route are visible.
  */
-function SearchPanel({onSubmit}: Props) {
+function SearchPanel({onSubmit, stations, linesByStation}: Props) {
     const [isExpanded, setIsExpanded] = useState(false);
 
-    const handleSubmit = (fromAddress: string, toAddress: string, departureDate?: Date) => {
-        onSubmit(fromAddress, toAddress, departureDate);
+    const handleSubmit = (params: AddressFormSubmitParams) => {
+        onSubmit(params);
         setIsExpanded(false);
     };
 
@@ -40,7 +45,7 @@ function SearchPanel({onSubmit}: Props) {
                 className={`${isExpanded ? 'block' : 'hidden'} rounded-lg border bg-[var(--bg)] p-3 shadow-lg md:block md:border-none md:p-0 md:shadow-none`}
                 style={{borderColor: 'var(--border)'}}
             >
-                <AddressForm onSubmit={handleSubmit} />
+                <AddressForm onSubmit={handleSubmit} stations={stations} linesByStation={linesByStation} />
             </div>
         </div>
     );

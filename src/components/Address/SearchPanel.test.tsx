@@ -42,7 +42,13 @@ describe('SearchPanel', () => {
         await userEvent.type(screen.getByPlaceholderText("Adresse d'arrivée"), '2 rue de Lyon');
         await userEvent.click(screen.getByText('Itinéraire'));
 
-        expect(onSubmit).toHaveBeenCalledWith('1 rue de Paris', '2 rue de Lyon', undefined);
+        expect(onSubmit).toHaveBeenCalledWith({
+            fromAddress: '1 rue de Paris',
+            toAddress: '2 rue de Lyon',
+            departureDate: undefined,
+            fromStationId: undefined,
+            toStationId: undefined,
+        });
         const formWrapper = screen.getByPlaceholderText('Adresse de départ').closest('[data-testid="search-panel-form"]');
         expect(formWrapper).toHaveClass('hidden');
     });
