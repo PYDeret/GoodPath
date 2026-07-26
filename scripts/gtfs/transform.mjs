@@ -24,15 +24,14 @@ const addOrUpdateEdge = (graph, from, to, duration, routeId, patternId) => {
 }
 
 /**
- * Turns the filtered GTFS records (routes, shapes, stops, stop_times, trips,
+ * Turns the filtered GTFS records (routes, stops, stop_times, trips,
  * transfers, calendar) into the app's `gtfs.json` shape: lines (each with a
- * precomputed frequency table), shapes grouped and ordered by sequence, an
- * adjacency-list `graph` of stop-to-stop travel times (ride edges from
- * stop_times plus walking interchange edges from transfers), and stations.
+ * precomputed frequency table), an adjacency-list `graph` of stop-to-stop
+ * travel times (ride edges from stop_times plus walking interchange edges
+ * from transfers), and stations.
  */
 export const buildData = (
     routes,
-    shapes,
     stops,
     stopTimes,
     trips,
@@ -42,7 +41,6 @@ export const buildData = (
     const data = {
         graph: {},
         stations: [],
-        shapes: [],
         lines: [],
     };
 
@@ -66,21 +64,6 @@ export const buildData = (
             frequencies: frequenciesByRoute.get(route.route_id),
         });
     });
-
-    data.shapes = shapes.reduce((acc, shape) => {
-        acc[shape.shape_id] ??= [];
-        acc[shape.shape_id].push({
-            shapeLat: parseFloat(shape.shape_pt_lat),
-            shapeLon: parseFloat(shape.shape_pt_lon),
-            shapeSequence: parseInt(shape.shape_pt_sequence, 10),
-        });
-
-        return acc;
-    }, {});
-
-    Object.values(data.shapes).forEach(points =>
-        points.sort((a, b) => a.shapeSequence - b.shapeSequence)
-    );
 
     Object.entries(stopTimesByTrip).forEach(([tripId, points]) => {
         const routeId = tripRouteById[tripId];

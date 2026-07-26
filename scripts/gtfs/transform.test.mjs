@@ -11,11 +11,6 @@ const stops = [
     {stop_id: 'C', stop_name: 'Station C', stop_lat: '48.3', stop_lon: '2.3', zone_id: '1'},
 ];
 
-const shapes = [
-    {shape_id: 'S1', shape_pt_lat: '48.1', shape_pt_lon: '2.1', shape_pt_sequence: '2'},
-    {shape_id: 'S1', shape_pt_lat: '48.0', shape_pt_lon: '2.0', shape_pt_sequence: '1'},
-];
-
 const trips = [
     {trip_id: 'T1', route_id: 'R1', shape_id: 'S1'},
     {trip_id: 'T2', route_id: 'R1', shape_id: 'S1'},
@@ -39,7 +34,7 @@ const stopTimes = [
 
 describe('buildData', () => {
     it('maps routes to lines', () => {
-        const data = buildData(routes, [], [], [], []);
+        const data = buildData(routes, [], [], []);
 
         expect(data.lines).toEqual([
             {id: 'R1', shortName: '1', longName: 'Line 1', color: 'FFFFFF', textColor: '000000', type: 1, frequencies: {
@@ -49,30 +44,21 @@ describe('buildData', () => {
         ]);
     });
 
-    it('groups and sorts shape points by sequence', () => {
-        const data = buildData([], shapes, [], [], []);
-
-        expect(data.shapes.S1).toEqual([
-            {shapeLat: 48.0, shapeLon: 2.0, shapeSequence: 1},
-            {shapeLat: 48.1, shapeLon: 2.1, shapeSequence: 2},
-        ]);
-    });
-
     it('maps stops to stations', () => {
-        const data = buildData([], [], stops, [], []);
+        const data = buildData([], stops, [], []);
 
         expect(data.stations[0]).toEqual({id: 'A', name: 'Station A', stopLat: 48.1, stopLon: 2.1, zoneId: '1'});
     });
 
     it('builds a graph edge between consecutive stops of a trip with its route id', () => {
-        const data = buildData([], [], [], stopTimes, trips);
+        const data = buildData([], [], stopTimes, trips);
 
         expect(data.graph.A).toHaveLength(1);
         expect(data.graph.A[0]).toMatchObject({to: 'B', routeId: 'R1'});
     });
 
     it('keeps the shortest duration when several trips share the same stop pair', () => {
-        const data = buildData([], [], [], stopTimes, trips);
+        const data = buildData([], [], stopTimes, trips);
 
         expect(data.graph.A[0].duration).toBe(180);
     });
@@ -85,7 +71,7 @@ describe('buildData', () => {
             {trip_id: 'T2', stop_id: 'B', stop_sequence: '2', arrival_time: '08:33:00', departure_time: '08:33:00'},
         ];
 
-        const data = buildData(routes, [], [], stopTimesWithMorningTrips, tripsWithService, [], calendar);
+        const data = buildData(routes, [], stopTimesWithMorningTrips, tripsWithService, [], calendar);
 
         expect(data.lines[0].frequencies).toEqual({
             weekday: {peak: 120, offpeak: 20, night: 20},
@@ -96,7 +82,7 @@ describe('buildData', () => {
     it('adds a bidirectional interchange edge for each transfer', () => {
         const transfers = [{from_stop_id: 'B', to_stop_id: 'C', min_transfer_time: '90'}];
 
-        const data = buildData([], [], [], [], [], transfers);
+        const data = buildData([], [], [], [], transfers);
 
         expect(data.graph.B).toContainEqual({to: 'C', duration: 90, routeId: 'TRANSFER', patternId: 'TRANSFER'});
         expect(data.graph.C).toContainEqual({to: 'B', duration: 90, routeId: 'TRANSFER', patternId: 'TRANSFER'});
@@ -116,7 +102,7 @@ describe('buildData', () => {
             {trip_id: 'TExpress', stop_id: 'C', stop_sequence: '2', arrival_time: '11:03:00', departure_time: '11:03:00'},
         ];
 
-        const data = buildData([], [], [], stopTimesTwoPatterns, tripsWithTwoPatterns);
+        const data = buildData([], [], stopTimesTwoPatterns, tripsWithTwoPatterns);
 
         // TLocal never has an A->C edge (it goes via B), TExpress does. They
         // must not merge into a single A->C edge distinct from A->B->C.
@@ -136,7 +122,7 @@ describe('buildData', () => {
             {trip_id: 'T1', stop_id: 'C', stop_sequence: '3', arrival_time: '10:10:00', departure_time: '10:10:00'},
         ];
 
-        const data = buildData([], [], [], stopTimesWithDwell, tripsSingle);
+        const data = buildData([], [], stopTimesWithDwell, tripsSingle);
 
         // A->B: departure(B) - departure(A) = 10:05:40 - 10:00:00 = 340s
         // (not arrival(B) - departure(A) = 300s, which would drop the 40s dwell at B).
