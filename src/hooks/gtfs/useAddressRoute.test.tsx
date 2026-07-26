@@ -10,7 +10,7 @@ vi.mock("../geo/useGeocodedStation.ts");
 const wrapper = ({children}: PropsWithChildren) => <>{children}</>;
 
 const data: GtfsData = {
-    graph: {A: [{to: 'B', duration: 300, routeId: 'L1'}]},
+    graph: {A: [{to: 'B', duration: 300, routeId: 'L1', patternId: 'L1'}]},
     shapes: {},
     stations: [
         {id: 'A', name: 'Station A', stopLat: 48.0, stopLon: 2.0, zoneId: '1'},
