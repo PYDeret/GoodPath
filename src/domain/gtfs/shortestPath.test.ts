@@ -82,6 +82,32 @@ describe('computeShortestPaths', () => {
         expect(offpeakBoarding.get(stateKey('B', 'L1'))).toBe(1200);
     });
 
+    it('advances the simulated clock across a bucket boundary for a later (non-first) boarding', () => {
+        // L1's wait is identical peak or offpeak, so the first boarding can't
+        // hint at which bucket was used. L2's wait differs sharply between
+        // buckets, so only the second boarding's result can prove the clock
+        // advanced with elapsed ride time rather than staying pinned to the
+        // departure bucket.
+        const firstLine = lineWithFrequency('L1', 10, 10); // peak=10min, offpeak=10min (bucket-insensitive)
+        const secondLine = lineWithFrequency('L2', 10, 40); // peak=10min, offpeak=40min (bucket-sensitive)
+        const schedule = scheduleWith(firstLine, secondLine);
+
+        const laterGraph: TransportGraph = {
+            // 61-minute ride: departs 8:00 (peak), arrives 9:01 (past the 9:00 peak cutoff -> offpeak).
+            A: [{to: 'B', duration: 61 * 60, routeId: 'L1'}],
+            // Zero-duration transfer resets the "currently boarded" route without adding elapsed time.
+            B: [{to: 'C', duration: 0, routeId: 'TRANSFER'}],
+            C: [{to: 'D', duration: 0, routeId: 'L2'}],
+        };
+
+        const {durations} = computeShortestPaths(laterGraph, 'A', PEAK_START, schedule);
+
+        // Board L1 at 8:00 (peak, wait 300) + 3660s ride + 0s walk
+        // + board L2 at 8:00 + 3660s = 9:01, i.e. offpeak -> wait = 40*60/2 = 1200 (not the peak 300).
+        // A fixed-clock bug would reuse the 8:00 departure bucket for L2 too, giving 300 instead.
+        expect(durations.get(stateKey('D', 'L2'))).toBe(300 + 61 * 60 + 1200);
+    });
+
     it('resets the boarding state after a transfer edge, forcing a wait on the next ride', () => {
         const transferGraph: TransportGraph = {
             A: [{to: 'B', duration: 10, routeId: 'L1'}],
