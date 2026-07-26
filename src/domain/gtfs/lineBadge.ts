@@ -13,6 +13,7 @@ const SHAPE_BY_ROUTE_TYPE: Record<number, LineBadgeShape> = {
     0: 'rounded', // tram
     1: 'circle',  // métro
     2: 'square',  // rail (RER/Transilien)
+    3: 'rounded', // bus
 };
 
 /**

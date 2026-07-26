@@ -23,6 +23,10 @@ describe('lineBadgeStyle', () => {
         expect(lineBadgeStyle(lineOfType(0)).shape).toBe('rounded');
     });
 
+    it('maps route_type 3 (bus) to rounded', () => {
+        expect(lineBadgeStyle(lineOfType(3)).shape).toBe('rounded');
+    });
+
     it('defaults an unrecognized route_type to rounded', () => {
         expect(lineBadgeStyle(lineOfType(99)).shape).toBe('rounded');
     });
