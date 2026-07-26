@@ -1,6 +1,6 @@
 import { MapContainer, TileLayer } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
-import {useState} from "react";
+import {useMemo, useState} from "react";
 import StationsLayer from "../Stations/StationsLayer.tsx";
 import LinesLayer from "../Lines/LinesLayer.tsx";
 import PathLayer from "../Path/PathLayer.tsx";
@@ -12,6 +12,7 @@ import RouteResultSheet from "../Address/RouteResultSheet.tsx";
 import {useGtfsData} from "../../hooks/gtfs/useGtfsData.ts";
 import {useAddressRoute} from "../../hooks/gtfs/useAddressRoute.ts";
 import {computeRouteStatus} from "../../domain/gtfs/routeStatus.ts";
+import {linesByStation} from "../../domain/gtfs/stationLines.ts";
 
 const STATUS_MESSAGES = {
     loading: 'Recherche en cours...',
@@ -36,9 +37,11 @@ function FullMap() {
     const [fromAddress, setFromAddress] = useState('');
     const [toAddress, setToAddress] = useState('');
     const [departureDate, setDepartureDate] = useState<Date>();
+    const [fromStationId, setFromStationId] = useState<string>();
+    const [toStationId, setToStationId] = useState<string>();
 
     const {data} = useGtfsData();
-    const addressRoute = useAddressRoute(data, fromAddress, toAddress, departureDate);
+    const addressRoute = useAddressRoute(data, fromAddress, toAddress, departureDate, fromStationId, toStationId);
     const routeStatus = computeRouteStatus({
         fromAddress,
         toAddress,
@@ -47,6 +50,11 @@ function FullMap() {
         toStation: addressRoute.toStation,
         duration: addressRoute.duration,
     });
+
+    const stationLinesMap = useMemo(
+        () => data ? linesByStation(data.graph, data.lines) : new Map<string, never[]>(),
+        [data]
+    );
 
     const handleStationClick = (stopId: string) => {
         if (!fromStopId || toStopId) {
@@ -62,7 +70,17 @@ function FullMap() {
     return (
         <div className="relative flex h-svh w-full">
             <div className="contents md:flex md:h-full md:w-96 md:flex-shrink-0 md:flex-col md:overflow-y-auto md:border-r md:p-4">
-                <SearchPanel onSubmit={(from, to, date) => { setFromAddress(from); setToAddress(to); setDepartureDate(date); }} />
+                <SearchPanel
+                    onSubmit={({fromAddress, toAddress, departureDate, fromStationId, toStationId}) => {
+                        setFromAddress(fromAddress);
+                        setToAddress(toAddress);
+                        setDepartureDate(departureDate);
+                        setFromStationId(fromStationId);
+                        setToStationId(toStationId);
+                    }}
+                    stations={data?.stations}
+                    linesByStation={stationLinesMap}
+                />
                 <RouteResultSheet visible={hasResult}>
                     {data && routeStatus === 'found' && addressRoute.duration !== null && (
                         <RouteInfoPanel data={data} legs={addressRoute.legs} duration={addressRoute.duration} />
