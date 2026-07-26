@@ -5,13 +5,17 @@ export type PathLeg = {
     fromStopId: string,
     toStopId: string,
     stopIds: string[],
+    duration: number,
 }
 
 /**
  * Groups a shortest-path stop sequence into legs of consecutive stops
- * travelled on the same route, for display as "line X from A to B".
+ * travelled on the same route, for display as "line X from A to B". Each
+ * leg's `duration` is the sum of the per-edge elapsed time (`arrivals`,
+ * parallel to `path`, as returned by `computeShortestPathWithWaypoints`),
+ * so it includes any boarding wait charged on the leg's first edge.
  */
-export const buildPathLegs = (graph: TransportGraph, path: string[]): PathLeg[] => {
+export const buildPathLegs = (graph: TransportGraph, path: string[], arrivals: number[]): PathLeg[] => {
     const legs: PathLeg[] = [];
 
     for (let i = 0; i < path.length - 1; i++) {
@@ -23,12 +27,15 @@ export const buildPathLegs = (graph: TransportGraph, path: string[]): PathLeg[] 
             continue;
         }
 
+        const edgeDuration = arrivals[i + 1] - arrivals[i];
         const currentLeg = legs[legs.length - 1];
+
         if (currentLeg && currentLeg.routeId === routeId) {
             currentLeg.toStopId = to;
             currentLeg.stopIds.push(to);
+            currentLeg.duration += edgeDuration;
         } else {
-            legs.push({routeId, fromStopId: from, toStopId: to, stopIds: [from, to]});
+            legs.push({routeId, fromStopId: from, toStopId: to, stopIds: [from, to], duration: edgeDuration});
         }
     }
 
