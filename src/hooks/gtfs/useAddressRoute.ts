@@ -6,21 +6,24 @@ import type {GtfsData} from "../../types/gtfs/gtfsData.ts";
 
 /**
  * End-to-end address routing: geocodes `fromAddress`/`toAddress` to their
- * nearest stations, computes the shortest path between them, and groups it
- * into per-line legs. `isLoading` covers both geocoding requests.
+ * nearest stations, computes the shortest schedule-aware path between them
+ * for a departure at `departureDate` (defaults to now), and groups it into
+ * per-line legs. `isLoading` covers both geocoding requests.
  */
-export function useAddressRoute(data: GtfsData | undefined, fromAddress: string, toAddress: string) {
+export function useAddressRoute(data: GtfsData | undefined, fromAddress: string, toAddress: string, departureDate?: Date) {
     const fromStation = useGeocodedStation(data?.stations, fromAddress);
     const toStation = useGeocodedStation(data?.stations, toAddress);
 
-    const {path, duration} = useShortestPath(data?.graph, fromStation.data?.id, toStation.data?.id);
+    const {path, duration, arrivals} = useShortestPath(
+        data?.graph, fromStation.data?.id, toStation.data?.id, data?.lines, {departureDate}
+    );
 
     const legs = useMemo(() => {
         if (!data || !path) {
             return [];
         }
-        return buildPathLegs(data.graph, path);
-    }, [data, path]);
+        return buildPathLegs(data.graph, path, arrivals);
+    }, [data, path, arrivals]);
 
     return {
         fromStation: fromStation.data,
