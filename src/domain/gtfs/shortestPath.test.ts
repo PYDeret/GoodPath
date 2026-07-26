@@ -161,6 +161,23 @@ describe('computeShortestPaths', () => {
         // board L1 (wait 300) + 10s ride + 60s walk + board L1 again (wait 300) + 5s ride
         expect(durations.get(stateKey('D', 'L1'))).toBe(300 + 10 + 60 + 300 + 5);
     });
+
+    it('stays fast on a long chain graph (regression guard against an O(V^2) search)', () => {
+        const chainLength = 5000;
+        const bigGraph: TransportGraph = {};
+        for (let i = 0; i < chainLength - 1; i++) {
+            bigGraph[`S${i}`] = [{to: `S${i + 1}`, duration: 60, routeId: 'L1', patternId: 'L1'}];
+        }
+
+        const start = performance.now();
+        const {durations} = computeShortestPaths(bigGraph, 'S0', PEAK_START, scheduleWith(L1));
+        const elapsedMs = performance.now() - start;
+
+        // One boarding wait (peak L1, 10min freq -> 300s) plus the ride itself; only the
+        // first hop pays a boarding wait since every subsequent hop continues the same pattern.
+        expect(durations.get(stateKey(`S${chainLength - 1}`, 'L1'))).toBe(300 + (chainLength - 1) * 60);
+        expect(elapsedMs).toBeLessThan(2000);
+    });
 });
 
 describe('computeShortestPaths constraints', () => {

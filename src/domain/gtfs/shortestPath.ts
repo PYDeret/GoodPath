@@ -3,6 +3,7 @@ import type {Line} from "../../types/gtfs/gtfsLine.ts";
 import type {DayType} from "./dayType.ts";
 import {computeBoardingWaitSeconds} from "./boardingWait.ts";
 import {TRANSFER_ROUTE_ID} from "./transferRouteId.ts";
+import {MinHeap} from "./minHeap.ts";
 
 export type PathResult = {
     durations: Map<string, number>,
@@ -63,15 +64,16 @@ export const computeShortestPaths = (
     const durations = new Map<string, number>([[start, 0]]);
     const previous = new Map<string, string>();
     const visited = new Set<string>();
-    const queue = new Set<string>([start]);
+    const queue = new MinHeap<string>();
+    queue.push(start, 0);
     const routeIdByPattern = new Map<string, string>();
 
     while (queue.size > 0) {
-        const current = [...queue].reduce((closest, state) =>
-            (durations.get(state) ?? Infinity) < (durations.get(closest) ?? Infinity) ? state : closest
-        );
+        const current = queue.pop()!;
 
-        queue.delete(current);
+        if (visited.has(current)) {
+            continue;
+        }
         visited.add(current);
 
         const currentStopId = stopIdOf(current);
@@ -118,7 +120,7 @@ export const computeShortestPaths = (
             if (nextDuration < (durations.get(nextState) ?? Infinity)) {
                 durations.set(nextState, nextDuration);
                 previous.set(nextState, current);
-                queue.add(nextState);
+                queue.push(nextState, nextDuration);
             }
         }
     }
