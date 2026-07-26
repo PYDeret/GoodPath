@@ -32,7 +32,8 @@
   top: 100%;
   left: 0;
   right: 0;
-  z-index: 10;
+  /* ponytail: above Leaflet's panes/controls (z-index up to 1000), so the dropdown paints over the map */
+  z-index: 1001;
   margin: 0;
   padding: 0;
   list-style: none;
