@@ -10,7 +10,9 @@ type Props = {
  * depending on viewport (CSS only, via the `md:` breakpoint — never by
  * remounting `AddressForm`, so in-progress input survives both a window
  * resize and toggling the mobile pill):
- * - Desktop (`md:` and up): a fixed-width sidebar, form always visible.
+ * - Desktop (`md:` and up): a flex column stretched to fill its parent
+ *   sidebar container (see `FullMap`, which owns the sidebar's width/
+ *   border/padding), form always visible.
  * - Mobile: a floating pill ("Où allez-vous ?") that expands to the full
  *   form on tap; submitting collapses it back to the pill so the map and
  *   the new route are visible.
