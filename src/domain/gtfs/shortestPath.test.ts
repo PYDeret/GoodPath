@@ -188,6 +188,19 @@ describe('computeShortestPathWithWaypoints', () => {
 
         expect(result).toBeNull();
     });
+
+    it('records the transfer sentinel as the pattern id for a stop reached via a transfer edge', () => {
+        const transferGraph: TransportGraph = {
+            A: [{to: 'B', duration: 10, routeId: 'L1', patternId: 'L1'}],
+            B: [{to: 'C', duration: 60, routeId: 'TRANSFER', patternId: 'TRANSFER'}],
+            C: [{to: 'D', duration: 5, routeId: 'L1', patternId: 'L1'}],
+        };
+
+        const result = computeShortestPathWithWaypoints(transferGraph, 'A', 'D', PEAK_START, scheduleWith(L1));
+
+        expect(result?.path).toEqual(['A', 'B', 'C', 'D']);
+        expect(result?.patternIds).toEqual([null, 'L1', 'TRANSFER', 'L1']);
+    });
 });
 
 describe('buildPath', () => {

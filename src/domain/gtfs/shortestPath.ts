@@ -81,7 +81,7 @@ export const computeShortestPaths = (
 
             const isTransfer = edge.routeId === TRANSFER_ROUTE_ID;
             const isContinuing = !isTransfer && edge.patternId === currentPatternId;
-            const nextPatternId = isTransfer ? null : edge.patternId;
+            const nextPatternId = edge.patternId;
             const nextState = stateKey(edge.to, nextPatternId);
 
             if (visited.has(nextState)) {
