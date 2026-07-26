@@ -1,5 +1,6 @@
 import {useState} from "react";
 import type {FormEvent} from "react";
+import AddressInput from "./AddressInput.tsx";
 
 type Props = {
     onSubmit: (fromAddress: string, toAddress: string, departureDate?: Date) => void,
@@ -23,17 +24,15 @@ function AddressForm({onSubmit}: Props) {
 
     return (
         <form onSubmit={handleSubmit} className="address-form">
-            <input
-                type="text"
+            <AddressInput
                 placeholder="Adresse de départ"
                 value={fromAddress}
-                onChange={e => setFromAddress(e.target.value)}
+                onChange={setFromAddress}
             />
-            <input
-                type="text"
+            <AddressInput
                 placeholder="Adresse d'arrivée"
                 value={toAddress}
-                onChange={e => setToAddress(e.target.value)}
+                onChange={setToAddress}
             />
             <label>
                 Heure de départ
