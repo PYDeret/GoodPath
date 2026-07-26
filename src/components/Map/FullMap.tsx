@@ -6,6 +6,7 @@ import LinesLayer from "../Lines/LinesLayer.tsx";
 import PathLayer from "../Path/PathLayer.tsx";
 import SearchPanel from "../Address/SearchPanel.tsx";
 import AddressRouteLayer from "../Address/AddressRouteLayer.tsx";
+import AddressRouteMarkers from "../Address/AddressRouteMarkers.tsx";
 import RouteInfoPanel from "../Address/RouteInfoPanel.tsx";
 import RouteResultSheet from "../Address/RouteResultSheet.tsx";
 import {useGtfsData} from "../../hooks/gtfs/useGtfsData.ts";
@@ -85,6 +86,7 @@ function FullMap() {
                     <LinesLayer />
                     <PathLayer fromStopId={fromStopId} toStopId={toStopId} />
                     {data && routeStatus === 'found' && <AddressRouteLayer data={data} legs={addressRoute.legs} />}
+                    <AddressRouteMarkers fromStation={addressRoute.fromStation ?? undefined} toStation={addressRoute.toStation ?? undefined} />
                 </MapContainer>
             </div>
         </div>

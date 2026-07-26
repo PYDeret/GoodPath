@@ -9,6 +9,7 @@ import type StationsLayer from "../Stations/StationsLayer.tsx";
 vi.mock("react-leaflet", () => ({
     MapContainer: ({children}: PropsWithChildren) => <div>{children}</div>,
     TileLayer: () => null,
+    Marker: () => null,
 }));
 
 vi.mock("../Stations/StationsLayer.tsx", () => ({
