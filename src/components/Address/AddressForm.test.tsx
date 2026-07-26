@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import {QueryClient, QueryClientProvider} from "@tanstack/react-query";
 import type {ReactElement} from "react";
 import AddressForm from "./AddressForm.tsx";
+import type {Station} from "../../types/gtfs/gtfsStation.ts";
 
 function renderWithQueryClient(ui: ReactElement) {
     const queryClient = new QueryClient();
@@ -24,7 +25,13 @@ describe('AddressForm', () => {
         await userEvent.type(screen.getByPlaceholderText("Adresse d'arrivée"), '2 rue de Lyon');
         await userEvent.click(screen.getByText('Itinéraire'));
 
-        expect(onSubmit).toHaveBeenCalledWith('1 rue de Paris', '2 rue de Lyon', undefined);
+        expect(onSubmit).toHaveBeenCalledWith({
+            fromAddress: '1 rue de Paris',
+            toAddress: '2 rue de Lyon',
+            departureDate: undefined,
+            fromStationId: undefined,
+            toStationId: undefined,
+        });
     });
 
     it('submits the chosen departure date when the time field is filled in', async () => {
@@ -37,7 +44,7 @@ describe('AddressForm', () => {
         await userEvent.type(screen.getByLabelText('Heure de départ'), '2026-07-26T14:30');
         await userEvent.click(screen.getByText('Itinéraire'));
 
-        const [, , departureDate] = onSubmit.mock.calls[0];
+        const [{departureDate}] = onSubmit.mock.calls[0];
         expect(departureDate).toEqual(new Date('2026-07-26T14:30:00'));
     });
 
@@ -64,5 +71,25 @@ describe('AddressForm', () => {
 
         expect(screen.queryByText('Adresse de départ requise.')).not.toBeInTheDocument();
         expect(screen.getByText("Adresse d'arrivée requise.")).toBeInTheDocument();
+    });
+
+    it('includes the selected station id in the submitted payload, and clears it if the field is edited afterward', async () => {
+        vi.stubGlobal('fetch', vi.fn().mockResolvedValue({json: () => Promise.resolve({features: []})}));
+        const onSubmit = vi.fn();
+        const stations: Station[] = [{id: 'S1', name: 'Gare de Lyon', stopLat: 0, stopLon: 0, zoneId: '1'}];
+        renderWithQueryClient(<AddressForm onSubmit={onSubmit} stations={stations} />);
+
+        await userEvent.type(screen.getByPlaceholderText('Adresse de départ'), 'Gare de Lyon');
+        await userEvent.click(screen.getByText(/Gare de Lyon/));
+        await userEvent.type(screen.getByPlaceholderText("Adresse d'arrivée"), '2 rue de Lyon');
+        await userEvent.click(screen.getByText('Itinéraire'));
+
+        expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({fromStationId: 'S1'}));
+
+        onSubmit.mockClear();
+        await userEvent.type(screen.getByPlaceholderText('Adresse de départ'), ' extra');
+        await userEvent.click(screen.getByText('Itinéraire'));
+
+        expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({fromStationId: undefined}));
     });
 });
