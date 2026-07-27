@@ -23,8 +23,8 @@ const secondsSinceMidnight = (date: Date) => date.getHours() * 3600 + date.getMi
  * through `options.requiredStations` in order and honoring optional
  * `options.constraints` (forbidden stations/lines/edges). Path selection
  * accounts for estimated train wait times (see domain/gtfs/shortestPath.ts),
- * using `lines`' frequency data and `options.departureDate` (defaults to
- * now) to pick the time-of-day bucket. Returns `{path: null, duration:
+ * using each line's real departure times and `options.departureDate`
+ * (defaults to now) to find the next boarding. Returns `{path: null, duration:
  * null, arrivals: []}` until both stop ids and `lines` are set, or no path
  * exists under the given constraints.
  */

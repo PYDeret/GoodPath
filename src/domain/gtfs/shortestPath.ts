@@ -38,8 +38,9 @@ const patternIdOf = (state: string): string | null => {
  * same physical trip pattern is free, but boarding a new one — including
  * the very first boarding, right after a `TRANSFER_ROUTE_ID` walking edge,
  * or switching to a *different pattern of the same line* — pays an
- * estimated wait based on that line's frequency at the simulated clock time
- * (`startTimeSeconds` plus cumulative elapsed time so far). While mid-ride
+ * estimated wait until that line's next real departure at or after the
+ * simulated clock time (`startTimeSeconds` plus cumulative elapsed time so
+ * far). While mid-ride
  * (already boarded some pattern), switching to a *different pattern of that
  * same route id* is not merely costly, it's forbidden entirely: only an
  * actual `TRANSFER_ROUTE_ID` edge (or the search's start) may change which
