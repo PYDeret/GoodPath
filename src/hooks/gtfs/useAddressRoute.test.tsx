@@ -17,14 +17,11 @@ const data: GtfsData = {
     ],
     lines: [{
         id: 'L1', shortName: '1', longName: 'Line 1', color: 'FFF', textColor: '000', type: 1,
-        frequencies: {
-            weekday: {peak: 10, offpeak: 10, night: 10},
-            weekend: {peak: 10, offpeak: 10, night: 10},
-        },
+        departureTimes: {weekday: [8 * 3600 + 300], weekend: [8 * 3600 + 300]},
     }],
 };
 
-// Wednesday 08:00 -> weekday/peak bucket, 10min frequency -> 300s boarding wait.
+// Wednesday 08:00 boarding, next real departure at 8:05 -> 300s boarding wait.
 const departureDate = new Date('2026-07-22T08:00:00');
 
 describe('useAddressRoute', () => {

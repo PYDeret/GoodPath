@@ -10,10 +10,7 @@ vi.mock("../../hooks/geo/useAddressSuggestions.ts");
 
 const lineC: Line = {
     id: 'L1', shortName: 'C', longName: 'RER C', color: 'FFCC30', textColor: '000000', type: 2,
-    frequencies: {
-        weekday: {peak: 10, offpeak: 10, night: 10},
-        weekend: {peak: 10, offpeak: 10, night: 10},
-    },
+    departureTimes: {weekday: [], weekend: []},
 };
 
 const etampesStation: Station = {id: 'S1', name: "Saint-Martin d'Étampes", stopLat: 0, stopLon: 0, zoneId: '1'};

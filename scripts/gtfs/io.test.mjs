@@ -56,9 +56,9 @@ describe('createJson', () => {
 
         const written = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
         expect(written.lines).toEqual([
-            {id: 'R1', shortName: '1', longName: 'Line 1', color: 'FFF', textColor: '000', type: 1, frequencies: {
-                weekday: {peak: 20, offpeak: 20, night: 20},
-                weekend: {peak: 20, offpeak: 20, night: 20},
+            {id: 'R1', shortName: '1', longName: 'Line 1', color: 'FFF', textColor: '000', type: 1, departureTimes: {
+                weekday: [],
+                weekend: [],
             }},
         ]);
     });

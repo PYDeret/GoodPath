@@ -5,10 +5,7 @@ import type {Line} from "../../types/gtfs/gtfsLine.ts";
 
 const line: Line = {
     id: 'L1', shortName: '14', longName: 'Line 14', color: '62259D', textColor: 'FFFFFF', type: 1,
-    frequencies: {
-        weekday: {peak: 10, offpeak: 10, night: 10},
-        weekend: {peak: 10, offpeak: 10, night: 10},
-    },
+    departureTimes: {weekday: [], weekend: []},
 };
 
 describe('LineBadge', () => {

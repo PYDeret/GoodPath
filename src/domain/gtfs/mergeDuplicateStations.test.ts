@@ -7,10 +7,7 @@ const station = (id: string, name: string): Station => ({id, name, stopLat: 0, s
 
 const lineOf = (id: string, shortName: string): Line => ({
     id, shortName, longName: shortName, color: 'FFF', textColor: '000', type: 1,
-    frequencies: {
-        weekday: {peak: 10, offpeak: 10, night: 10},
-        weekend: {peak: 10, offpeak: 10, night: 10},
-    },
+    departureTimes: {weekday: [], weekend: []},
 });
 
 const L1 = lineOf('L1', '1');
