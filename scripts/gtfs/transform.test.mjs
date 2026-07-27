@@ -37,9 +37,9 @@ describe('buildData', () => {
         const data = buildData(routes, [], [], []);
 
         expect(data.lines).toEqual([
-            {id: 'R1', shortName: '1', longName: 'Line 1', color: 'FFFFFF', textColor: '000000', type: 1, frequencies: {
-                weekday: {peak: 20, offpeak: 20, night: 20},
-                weekend: {peak: 20, offpeak: 20, night: 20},
+            {id: 'R1', shortName: '1', longName: 'Line 1', color: 'FFFFFF', textColor: '000000', type: 1, departureTimes: {
+                weekday: [],
+                weekend: [],
             }},
         ]);
     });
@@ -63,7 +63,7 @@ describe('buildData', () => {
         expect(data.graph.A[0].duration).toBe(180);
     });
 
-    it('attaches computed frequencies to each line', () => {
+    it('attaches computed departure times to each line', () => {
         const stopTimesWithMorningTrips = [
             {trip_id: 'T1', stop_id: 'A', stop_sequence: '1', arrival_time: '08:00:00', departure_time: '08:00:00'},
             {trip_id: 'T1', stop_id: 'B', stop_sequence: '2', arrival_time: '08:05:00', departure_time: '08:05:00'},
@@ -73,9 +73,9 @@ describe('buildData', () => {
 
         const data = buildData(routes, [], stopTimesWithMorningTrips, tripsWithService, [], calendar);
 
-        expect(data.lines[0].frequencies).toEqual({
-            weekday: {peak: 120, offpeak: 20, night: 20},
-            weekend: {peak: 20, offpeak: 20, night: 20},
+        expect(data.lines[0].departureTimes).toEqual({
+            weekday: [8 * 3600, 8 * 3600 + 1800],
+            weekend: [],
         });
     });
 

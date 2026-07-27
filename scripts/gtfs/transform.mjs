@@ -1,5 +1,5 @@
 import {parseGtfsTime} from "./time.mjs";
-import {computeLineFrequencies} from "./frequencies.mjs";
+import {computeLineDepartureTimes} from "./departureTimes.mjs";
 import {computePatternId} from "./tripPattern.mjs";
 
 const groupBy = (records, key) => records.reduce((acc, record) => {
@@ -25,8 +25,8 @@ const addOrUpdateEdge = (graph, from, to, duration, routeId, patternId) => {
 
 /**
  * Turns the filtered GTFS records (routes, stops, stop_times, trips,
- * transfers, calendar) into the app's `gtfs.json` shape: lines (each with a
- * precomputed frequency table), an adjacency-list `graph` of stop-to-stop
+ * transfers, calendar) into the app's `gtfs.json` shape: lines (each with its
+ * real departure times per day type), an adjacency-list `graph` of stop-to-stop
  * travel times (ride edges from stop_times plus walking interchange edges
  * from transfers), and stations.
  */
@@ -51,7 +51,7 @@ export const buildData = (
         points.sort((a, b) => parseInt(a.stop_sequence) - parseInt(b.stop_sequence))
     );
 
-    const frequenciesByRoute = computeLineFrequencies(routes, trips, calendar, stopTimesByTrip);
+    const departureTimesByRoute = computeLineDepartureTimes(routes, trips, calendar, stopTimesByTrip);
 
     routes.forEach(route => {
         data.lines.push({
@@ -61,7 +61,7 @@ export const buildData = (
             color: route.route_color,
             textColor: route.route_text_color,
             type: parseInt(route.route_type),
-            frequencies: frequenciesByRoute.get(route.route_id),
+            departureTimes: departureTimesByRoute.get(route.route_id),
         });
     });
 
