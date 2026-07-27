@@ -4,23 +4,29 @@ import type {Schedule} from "./shortestPath.ts";
 import type {TransportGraph} from "../../types/gtfs/gtfsGraph.ts";
 import type {Line} from "../../types/gtfs/gtfsLine.ts";
 
-const lineWithFrequency = (id: string, peakMinutes: number, offpeakMinutes: number): Line => ({
+const lineWithDepartures = (id: string, weekdayDepartures: number[]): Line => ({
     id, shortName: id, longName: id, color: 'FFF', textColor: '000', type: 1,
-    frequencies: {
-        weekday: {peak: peakMinutes, offpeak: offpeakMinutes, night: offpeakMinutes},
-        weekend: {peak: peakMinutes, offpeak: offpeakMinutes, night: offpeakMinutes},
-    },
+    departureTimes: {weekday: weekdayDepartures, weekend: weekdayDepartures},
 });
 
-const L1 = lineWithFrequency('L1', 10, 10);
-const L2 = lineWithFrequency('L2', 10, 10);
+const PEAK_START = 8 * 3600;
+
+// L1 boards at 8:00:00 (28800) in most tests below -> needs a departure at
+// 29100 (28800+300) to give exactly a 300s wait. The waypoint tests'
+// second leg boards L1 fresh again at 29120 -> needs a departure at 29420
+// (29120+300). Both entries coexist safely: a query at 28800 still finds
+// 29100 as its nearest (29420 is later), and a query at 29120 skips the
+// now-past 29100 and finds 29420 exactly.
+const L1 = lineWithDepartures('L1', [29100, 29420]);
+// L2 is only asserted exactly once, boarded at clock 29110 (300s wait ->
+// departure at 29410). Every other use of L2 only checks reachability, so
+// this single entry (with wraparound for any later query) is sufficient.
+const L2 = lineWithDepartures('L2', [29410]);
 
 const scheduleWith = (...lines: Line[]): Schedule => ({
     linesById: new Map(lines.map(line => [line.id, line])),
     dayType: 'weekday',
 });
-
-const PEAK_START = 8 * 3600;
 
 const graph: TransportGraph = {
     A: [{to: 'B', duration: 10, routeId: 'L1', patternId: 'L1'}],
@@ -40,8 +46,7 @@ describe('computeShortestPaths', () => {
     it('finds the shortest cumulative duration to a reachable stop, including boarding waits', () => {
         const {durations} = computeShortestPaths(graph, 'A', PEAK_START, scheduleWith(L1, L2));
 
-        // A->B->C->D on L1 the whole way: one boarding wait (5min = 300s) + 20s ride.
-        // A->B->D via L2 at B: two boarding waits (L1 then L2) + 30s ride = 600+30=630 vs 300+20=320.
+        // A->B->C->D on L1 the whole way: one boarding wait (300s, next L1 departure at 29100) + 20s ride.
         expect(durations.get(stateKey('D', 'L1'))).toBe(300 + 20);
     });
 
@@ -64,7 +69,8 @@ describe('computeShortestPaths', () => {
     it('charges a fresh boarding wait when changing lines', () => {
         const {durations} = computeShortestPaths(graph, 'A', PEAK_START, scheduleWith(L1, L2));
 
-        // A -> B (board L1, wait 300s + 10s ride) -> D (board L2, wait 300s + 20s ride)
+        // A -> B (board L1 at 28800, next departure 29100 -> wait 300 + 10s ride)
+        // -> D (board L2 at 29110, next departure 29410 -> wait 300 + 20s ride)
         expect(durations.get(stateKey('D', 'L2'))).toBe(300 + 10 + 300 + 20);
     });
 
@@ -109,32 +115,31 @@ describe('computeShortestPaths', () => {
         expect(durations.has(stateKey('D', 'L2'))).toBe(true);
     });
 
-    it('uses the simulated clock (start + elapsed) to pick the bucket at boarding time', () => {
-        const nightLine = lineWithFrequency('L1', 10, 40); // peak=10min, offpeak=40min
-        const schedule = scheduleWith(nightLine);
+    it('uses the simulated clock (start + elapsed) to find the correct upcoming departure', () => {
+        // Departures at 8:00 (giving a 300s wait if boarded right at 28800) and
+        // 10:20 (giving a 1200s wait if boarded at 10:00).
+        const customLine = lineWithDepartures('L1', [PEAK_START + 300, 10 * 3600 + 1200]);
+        const schedule = scheduleWith(customLine);
         const lateGraph: TransportGraph = {A: [{to: 'B', duration: 0, routeId: 'L1', patternId: 'L1'}]};
 
-        // Boarding at PEAK_START itself: bucket is peak -> wait = 10*60/2 = 300
-        const {durations: peakBoarding} = computeShortestPaths(lateGraph, 'A', PEAK_START, schedule);
-        expect(peakBoarding.get(stateKey('B', 'L1'))).toBe(300);
+        const {durations: earlyBoarding} = computeShortestPaths(lateGraph, 'A', PEAK_START, schedule);
+        expect(earlyBoarding.get(stateKey('B', 'L1'))).toBe(300);
 
-        // Boarding at 10:00 (offpeak): wait = 40*60/2 = 1200
-        const {durations: offpeakBoarding} = computeShortestPaths(lateGraph, 'A', 10 * 3600, schedule);
-        expect(offpeakBoarding.get(stateKey('B', 'L1'))).toBe(1200);
+        const {durations: laterBoarding} = computeShortestPaths(lateGraph, 'A', 10 * 3600, schedule);
+        expect(laterBoarding.get(stateKey('B', 'L1'))).toBe(1200);
     });
 
-    it('advances the simulated clock across a bucket boundary for a later (non-first) boarding', () => {
-        // L1's wait is identical peak or offpeak, so the first boarding can't
-        // hint at which bucket was used. L2's wait differs sharply between
-        // buckets, so only the second boarding's result can prove the clock
-        // advanced with elapsed ride time rather than staying pinned to the
-        // departure bucket.
-        const firstLine = lineWithFrequency('L1', 10, 10); // peak=10min, offpeak=10min (bucket-insensitive)
-        const secondLine = lineWithFrequency('L2', 10, 40); // peak=10min, offpeak=40min (bucket-sensitive)
+    it('advances the simulated clock across a ride for a later (non-first) boarding', () => {
+        // firstLine is boarded once, at 8:00 (28800) -> needs a departure at 29100 for a 300s wait.
+        const firstLine = lineWithDepartures('L1', [PEAK_START + 300]);
+        // secondLine is boarded once, at 8:00 + 300s wait + 3660s ride = 32760 -> needs
+        // a departure at 33960 for a 1200s wait, proving the clock advanced with the
+        // ride's elapsed time rather than staying pinned to the first boarding's clock.
+        const secondLine = lineWithDepartures('L2', [32760 + 1200]);
         const schedule = scheduleWith(firstLine, secondLine);
 
         const laterGraph: TransportGraph = {
-            // 61-minute ride: departs 8:00 (peak), arrives 9:01 (past the 9:00 peak cutoff -> offpeak).
+            // 61-minute ride: boards at 8:00, arrives with cumulative elapsed time 300+3660=3960s.
             A: [{to: 'B', duration: 61 * 60, routeId: 'L1', patternId: 'L1'}],
             // Zero-duration transfer resets the "currently boarded" pattern without adding elapsed time.
             B: [{to: 'C', duration: 0, routeId: 'TRANSFER', patternId: 'TRANSFER'}],
@@ -143,20 +148,27 @@ describe('computeShortestPaths', () => {
 
         const {durations} = computeShortestPaths(laterGraph, 'A', PEAK_START, schedule);
 
-        // Board L1 at 8:00 (peak, wait 300) + 3660s ride + 0s walk
-        // + board L2 at 8:00 + 3660s = 9:01, i.e. offpeak -> wait = 40*60/2 = 1200 (not the peak 300).
-        // A fixed-clock bug would reuse the 8:00 departure bucket for L2 too, giving 300 instead.
+        // Board L1 at 8:00 (wait 300) + 3660s ride + 0s walk
+        // + board L2 at clock 28800+3960=32760 (wait 1200, not the first line's 300).
+        // A fixed-clock bug would reuse the first boarding's clock for L2 too.
         expect(durations.get(stateKey('D', 'L2'))).toBe(300 + 61 * 60 + 1200);
     });
 
     it('resets the boarding state after a transfer edge, forcing a wait on the next ride', () => {
+        // Boards L1 twice: once at 8:00 (28800) and again at 28800+300+10+60=29170
+        // after the transfer. A single shared departure list can't give exactly
+        // 300s at both clocks (a departure placed for the first boarding would
+        // become the wrong "nearest" for the second) — use two departures spaced
+        // so each boarding's own nearest departure gives exactly 300s.
+        const resetLine = lineWithDepartures('L1', [PEAK_START + 300, 29170 + 300]);
+
         const transferGraph: TransportGraph = {
             A: [{to: 'B', duration: 10, routeId: 'L1', patternId: 'L1'}],
             B: [{to: 'C', duration: 60, routeId: 'TRANSFER', patternId: 'TRANSFER'}],
             C: [{to: 'D', duration: 5, routeId: 'L1', patternId: 'L1'}],
         };
 
-        const {durations} = computeShortestPaths(transferGraph, 'A', PEAK_START, scheduleWith(L1));
+        const {durations} = computeShortestPaths(transferGraph, 'A', PEAK_START, scheduleWith(resetLine));
 
         // board L1 (wait 300) + 10s ride + 60s walk + board L1 again (wait 300) + 5s ride
         expect(durations.get(stateKey('D', 'L1'))).toBe(300 + 10 + 60 + 300 + 5);
@@ -173,7 +185,7 @@ describe('computeShortestPaths', () => {
         const {durations} = computeShortestPaths(bigGraph, 'S0', PEAK_START, scheduleWith(L1));
         const elapsedMs = performance.now() - start;
 
-        // One boarding wait (peak L1, 10min freq -> 300s) plus the ride itself; only the
+        // One boarding wait (300s, next L1 departure at 29100) plus the ride itself; only the
         // first hop pays a boarding wait since every subsequent hop continues the same pattern.
         expect(durations.get(stateKey(`S${chainLength - 1}`, 'L1'))).toBe(300 + (chainLength - 1) * 60);
         expect(elapsedMs).toBeLessThan(2000);
@@ -207,7 +219,7 @@ describe('computeShortestPathWithWaypoints', () => {
     it('matches the plain shortest path when there is no required station', () => {
         const result = computeShortestPathWithWaypoints(waypointGraph, 'A', 'E', PEAK_START, waypointSchedule);
 
-        // single boarding wait (300s) + ride time (10+1+1=12s)
+        // single boarding wait (300s, departure at 29100) + ride time (10+1+1=12s)
         expect(result).toEqual({
             path: ['A', 'B', 'F', 'E'],
             duration: 312,
@@ -219,8 +231,8 @@ describe('computeShortestPathWithWaypoints', () => {
     it('forces the path through the required station, even if longer, and pays a fresh boarding wait per leg', () => {
         const result = computeShortestPathWithWaypoints(waypointGraph, 'A', 'E', PEAK_START, waypointSchedule, ['D']);
 
-        // leg 1 (A->D via B,C): wait 300 + ride 10+5+5=20 = 320
-        // leg 2 (D->E): wait 300 + ride 3 = 303
+        // leg 1 (A->D via B,C): boards at 28800 (departure 29100) -> wait 300 + ride 10+5+5=20 = 320
+        // leg 2 (D->E): boards fresh at 28800+320=29120 (departure 29420) -> wait 300 + ride 3 = 303
         expect(result?.duration).toBe(320 + 303);
         expect(result?.path).toEqual(['A', 'B', 'C', 'D', 'E']);
         expect(result?.arrivals).toEqual([0, 300 + 10, 300 + 15, 320, 320 + 303]);
