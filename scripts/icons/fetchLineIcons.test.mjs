@@ -12,7 +12,7 @@ describe('fetchLineIcons', () => {
 
         expect(fetchImpl).toHaveBeenCalledWith(
             'https://prim.iledefrance-mobilites.fr/marketplace/ilico/getIcon/C01742?style=colored',
-            expect.objectContaining({headers: {Authorization: 'token123'}})
+            expect.objectContaining({headers: {apikey: 'token123'}})
         );
     });
 
@@ -49,6 +49,40 @@ describe('fetchLineIcons', () => {
         await fetchLineIcons(['IDFM:C01742', 'IDFM:C01742'], 'token123', fetchImpl);
 
         expect(fetchImpl).toHaveBeenCalledTimes(1);
+    });
+
+    it('retries on 429 and eventually succeeds', async () => {
+        vi.useFakeTimers();
+        const tooManyRequestsResponse = {
+            ok: false, status: 429, headers: {get: () => null}, text: () => Promise.resolve(''),
+        };
+        const fetchImpl = vi.fn()
+            .mockResolvedValueOnce(tooManyRequestsResponse)
+            .mockResolvedValueOnce(okResponse('<svg>retried</svg>'));
+
+        const promise = fetchLineIcons(['IDFM:C01742'], 'token123', fetchImpl);
+        await vi.runAllTimersAsync();
+        const icons = await promise;
+
+        expect(icons.get('C01742')).toBe('<svg>retried</svg>');
+        expect(fetchImpl).toHaveBeenCalledTimes(2);
+        vi.useRealTimers();
+    });
+
+    it('gives up after exhausting retries on repeated 429s', async () => {
+        vi.useFakeTimers();
+        const tooManyRequestsResponse = {
+            ok: false, status: 429, headers: {get: () => null}, text: () => Promise.resolve(''),
+        };
+        const fetchImpl = vi.fn().mockResolvedValue(tooManyRequestsResponse);
+
+        const promise = fetchLineIcons(['IDFM:C01742'], 'token123', fetchImpl);
+        await vi.runAllTimersAsync();
+        const icons = await promise;
+
+        expect(icons.size).toBe(0);
+        expect(fetchImpl).toHaveBeenCalledTimes(6);
+        vi.useRealTimers();
     });
 
     it('never runs more than 10 fetches concurrently', async () => {

@@ -1,21 +1,41 @@
 const BASE_URL = 'https://prim.iledefrance-mobilites.fr/marketplace/ilico';
-const MAX_CONCURRENCY = 10;
+const MAX_CONCURRENCY = 5;
+const MAX_RETRIES = 5;
+const BASE_RETRY_DELAY_MS = 500;
 
 const bareLineId = (lineId) => lineId.replace(/^IDFM:/, '');
 
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// ponytail: PRIM rate-limits aggressively (HTTP 429) under load; back off per
+// its Retry-After header when present, else exponentially, up to MAX_RETRIES.
+const retryDelayMs = (response, attempt) => {
+    const retryAfterSeconds = Number(response.headers?.get?.('retry-after'));
+    if (Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0) {
+        return retryAfterSeconds * 1000;
+    }
+    return BASE_RETRY_DELAY_MS * 2 ** attempt;
+};
+
 const fetchIcon = async (bareId, apiToken, fetchImpl) => {
-    const response = await fetchImpl(`${BASE_URL}/getIcon/${bareId}?style=colored`, {
-        headers: {Authorization: apiToken},
-    });
+    for (let attempt = 0; ; attempt++) {
+        const response = await fetchImpl(`${BASE_URL}/getIcon/${bareId}?style=colored`, {
+            headers: {apikey: apiToken},
+        });
 
-    if (response.status === 404) {
-        return undefined;
-    }
-    if (!response.ok) {
-        throw new Error(`getIcon failed for ${bareId}: HTTP ${response.status}`);
-    }
+        if (response.status === 404) {
+            return undefined;
+        }
+        if (response.status === 429 && attempt < MAX_RETRIES) {
+            await sleep(retryDelayMs(response, attempt));
+            continue;
+        }
+        if (!response.ok) {
+            throw new Error(`getIcon failed for ${bareId}: HTTP ${response.status}`);
+        }
 
-    return response.text();
+        return response.text();
+    }
 };
 
 export async function fetchLineIcons(lineIds, apiToken, fetchImpl = fetch) {
