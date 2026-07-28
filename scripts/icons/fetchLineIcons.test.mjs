@@ -4,9 +4,11 @@ import {fetchLineIcons} from "./fetchLineIcons.mjs";
 const spriteResponse = (svg) => ({ok: true, status: 200, text: () => Promise.resolve(svg)});
 const errorResponse = (status) => ({ok: false, status, text: () => Promise.resolve('')});
 
-const SAMPLE_SPRITE = `<svg xmlns="http://www.w3.org/2000/svg">
-<symbol id="C01742" viewBox="0 0 60 60"><rect fill="#FFCE00"/></symbol>
-<symbol id="C01743" viewBox="0 0 60 60"><rect fill="#00814F"/></symbol>
+const SAMPLE_SPRITE = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 31.5 20">
+<symbol id="line:IDFM:C01742" viewBox="0 0 60 60"><rect fill="#FFCE00"/></symbol>
+<symbol id="line:IDFM:C01743"><rect fill="#00814F"/></symbol>
+<symbol id="line:IDFM:C01744"><rect clip-path="url(#clip-a)"/></symbol>
+<defs><clipPath id="clip-a"><rect width="10" height="10"/></clipPath></defs>
 </svg>`;
 
 describe('fetchLineIcons', () => {
@@ -29,6 +31,28 @@ describe('fetchLineIcons', () => {
 
         expect(icons.get('C01742')).toBe(
             '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 60"><rect fill="#FFCE00"/></svg>'
+        );
+    });
+
+    it("falls back to the sprite's root viewBox when a symbol doesn't declare its own", async () => {
+        const fetchImpl = vi.fn().mockResolvedValue(spriteResponse(SAMPLE_SPRITE));
+
+        const icons = await fetchLineIcons(['IDFM:C01743'], 'token123', fetchImpl);
+
+        expect(icons.get('C01743')).toBe(
+            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 31.5 20"><rect fill="#00814F"/></svg>'
+        );
+    });
+
+    it('inlines any <clipPath> def the symbol references so the standalone SVG renders identically', async () => {
+        const fetchImpl = vi.fn().mockResolvedValue(spriteResponse(SAMPLE_SPRITE));
+
+        const icons = await fetchLineIcons(['IDFM:C01744'], 'token123', fetchImpl);
+
+        expect(icons.get('C01744')).toBe(
+            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 31.5 20">'
+            + '<defs><clipPath id="clip-a"><rect width="10" height="10"/></clipPath></defs>'
+            + '<rect clip-path="url(#clip-a)"/></svg>'
         );
     });
 
