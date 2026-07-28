@@ -1,66 +1,51 @@
 const BASE_URL = 'https://prim.iledefrance-mobilites.fr/marketplace/ilico';
-const MAX_CONCURRENCY = 5;
-const MAX_RETRIES = 5;
-const BASE_RETRY_DELAY_MS = 500;
 
 const bareLineId = (lineId) => lineId.replace(/^IDFM:/, '');
 
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+// PRIM's API key quota is 50 requests/day, so all icons must come from a
+// single /getIcon/sprite call rather than one request per line. Each
+// <symbol> in the returned sprite is unwrapped back into a standalone SVG
+// so the rest of the app (LineBadge) can keep treating icons as one static
+// file per line, same as if getIcon/{lineId} had been called directly.
+const parseSprite = (spriteSvg) => {
+    const icons = new Map();
+    const symbolRe = /<symbol\b([^>]*)>([\s\S]*?)<\/symbol>/g;
+    let match;
 
-// ponytail: PRIM rate-limits aggressively (HTTP 429) under load; back off per
-// its Retry-After header when present, else exponentially, up to MAX_RETRIES.
-const retryDelayMs = (response, attempt) => {
-    const retryAfterSeconds = Number(response.headers?.get?.('retry-after'));
-    if (Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0) {
-        return retryAfterSeconds * 1000;
-    }
-    return BASE_RETRY_DELAY_MS * 2 ** attempt;
-};
-
-const fetchIcon = async (bareId, apiToken, fetchImpl) => {
-    for (let attempt = 0; ; attempt++) {
-        const response = await fetchImpl(`${BASE_URL}/getIcon/${bareId}?style=colored`, {
-            headers: {apikey: apiToken},
-        });
-
-        if (response.status === 404) {
-            return undefined;
-        }
-        if (response.status === 429 && attempt < MAX_RETRIES) {
-            await sleep(retryDelayMs(response, attempt));
+    while ((match = symbolRe.exec(spriteSvg)) !== null) {
+        const [, attrs, inner] = match;
+        const idMatch = attrs.match(/\bid="([^"]+)"/);
+        if (!idMatch) {
             continue;
         }
-        if (!response.ok) {
-            throw new Error(`getIcon failed for ${bareId}: HTTP ${response.status}`);
-        }
-
-        return response.text();
+        const viewBoxMatch = attrs.match(/\bviewBox="([^"]+)"/);
+        const viewBox = viewBoxMatch ? viewBoxMatch[1] : '0 0 60 60';
+        icons.set(idMatch[1], `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewBox}">${inner}</svg>`);
     }
+
+    return icons;
 };
 
 export async function fetchLineIcons(lineIds, apiToken, fetchImpl = fetch) {
-    const bareIds = [...new Set(lineIds.map(bareLineId))];
+    const bareIds = new Set(lineIds.map(bareLineId));
+
+    const response = await fetchImpl(`${BASE_URL}/getIcon/sprite?getAll=true&format=sprite&style=colored`, {
+        headers: {apikey: apiToken},
+    });
+    if (!response.ok) {
+        throw new Error(`getIcon/sprite failed: HTTP ${response.status}`);
+    }
+
+    const allIcons = parseSprite(await response.text());
     const icons = new Map();
-    let cursor = 0;
 
-    const worker = async () => {
-        while (cursor < bareIds.length) {
-            const bareId = bareIds[cursor++];
-            try {
-                const svg = await fetchIcon(bareId, apiToken, fetchImpl);
-                if (svg !== undefined) {
-                    icons.set(bareId, svg);
-                } else {
-                    console.warn(`[fetchLineIcons] no icon for line ${bareId} (404)`);
-                }
-            } catch (error) {
-                console.warn(`[fetchLineIcons] failed to fetch icon for line ${bareId}: ${error.message}`);
-            }
+    for (const bareId of bareIds) {
+        if (allIcons.has(bareId)) {
+            icons.set(bareId, allIcons.get(bareId));
+        } else {
+            console.warn(`[fetchLineIcons] no icon for line ${bareId}`);
         }
-    };
-
-    const workerCount = Math.min(MAX_CONCURRENCY, bareIds.length);
-    await Promise.all(Array.from({length: workerCount}, worker));
+    }
 
     return icons;
 }
