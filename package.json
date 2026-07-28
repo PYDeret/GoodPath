@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "build:gtfs": "node scripts/build-gtfs.mjs",
+    "build:icons": "node --env-file-if-exists=.env scripts/build-icons.mjs",
     "test": "vitest run"
   },
   "dependencies": {
