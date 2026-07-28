@@ -1,3 +1,4 @@
+import {useState} from "react";
 import {lineBadgeStyle} from "../../domain/gtfs/lineBadge.ts";
 import type {Line} from "../../types/gtfs/gtfsLine.ts";
 
@@ -11,17 +12,35 @@ const BORDER_RADIUS_BY_SHAPE: Record<string, string> = {
     rounded: '8px',
 };
 
+const bareLineId = (id: string) => id.replace(/^IDFM:/, '');
+
 /**
- * Small colored badge for a transit line, shaped like real RATP/IDFM
- * pictograms (circle/square/rounded per mode) using the line's own GTFS
- * color fields rather than a fetched logo image.
+ * Small badge for a transit line: the official IDFM SVG pictogram fetched
+ * by `npm run build:icons` (see scripts/icons/pipeline.mjs) when one exists
+ * for this line, falling back to a colored CSS badge shaped like real
+ * RATP/IDFM pictograms (circle/square/rounded per mode) using the line's
+ * own GTFS color fields when no icon file is available.
  */
 function LineBadge({line}: Props) {
+    const [iconFailed, setIconFailed] = useState(false);
     const style = lineBadgeStyle(line);
+    const accessibleName = `Ligne ${style.label}`;
+
+    if (!iconFailed) {
+        return (
+            <img
+                src={`/data/icons/${bareLineId(line.id)}.svg`}
+                alt={accessibleName}
+                aria-label={accessibleName}
+                className="h-6 w-6"
+                onError={() => setIconFailed(true)}
+            />
+        );
+    }
 
     return (
         <span
-            aria-label={`Ligne ${style.label}`}
+            aria-label={accessibleName}
             className="inline-flex h-6 w-6 items-center justify-center text-xs font-bold"
             style={{
                 backgroundColor: style.backgroundColor,
